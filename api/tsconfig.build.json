@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "exclude": ["src/**/*.test.ts"],
+  "references": [{ "path": "../packages/shared/tsconfig.build.json" }]
+}
