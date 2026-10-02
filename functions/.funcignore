@@ -1,0 +1,5 @@
+*.ts
+!dist/**
+tsconfig.json
+local.settings*.json
+node_modules/@types
