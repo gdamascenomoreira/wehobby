@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars for a local plan. terraform.tfvars is git ignored.
+# Placeholder values only.
+
+location      = "westeurope"
+api_image_tag = "sha-0000000"
+
+# Only if kv-wehobby-dev is already taken by someone else:
+# key_vault_name = "kv-wehobby-dev-01"
+
+# Only after the CNAME record dev -> <web_default_host_name> exists:
+# web_custom_domain = "dev.wehobby.app"
