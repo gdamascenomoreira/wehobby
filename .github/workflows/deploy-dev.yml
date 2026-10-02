@@ -1,0 +1,198 @@
+name: Deploy dev
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two deploys against the same state at once, and never cancel one
+# half way through an apply.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+env:
+  TERRAFORM_VERSION: 1.16.4
+  IMAGE_NAME: wehobby-api
+  RESOURCE_GROUP: rg-wehobby-dev
+
+jobs:
+  image:
+    name: Build and push API image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      repository: ${{ steps.meta.outputs.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Image name and tag
+        id: meta
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          echo "repository=ghcr.io/${OWNER,,}/${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: api/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.repository }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.repository }}:dev
+          build-args: APP_VERSION=${{ steps.meta.outputs.tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=WeHobby API
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+  infra:
+    name: Terraform apply (dev)
+    needs: image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: 'true'
+      TF_IN_AUTOMATION: 'true'
+      TF_VAR_api_image_repository: ${{ needs.image.outputs.repository }}
+      TF_VAR_api_image_tag: ${{ needs.image.outputs.tag }}
+      TF_VAR_web_custom_domain: ${{ vars.WEB_CUSTOM_DOMAIN }}
+      TF_VAR_key_vault_name: ${{ vars.KEY_VAULT_NAME }}
+    defaults:
+      run:
+        working-directory: infra/envs/dev
+    outputs:
+      api_url: ${{ steps.outputs.outputs.api_url }}
+      web_url: ${{ steps.outputs.outputs.web_url }}
+      static_web_app_name: ${{ steps.outputs.outputs.static_web_app_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Container Apps pulls the image anonymously. A new ghcr.io package is
+      # private, so fail fast here instead of waiting on a failing revision.
+      - name: Check the API image is public
+        env:
+          IMAGE: ${{ needs.image.outputs.repository }}:${{ needs.image.outputs.tag }}
+        run: |
+          if ! docker manifest inspect "$IMAGE" > /dev/null; then
+            echo "::error::$IMAGE cannot be pulled anonymously. Make the package public (docs/setup.md, step 8) and re-run this job."
+            exit 1
+          fi
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform apply
+        run: terraform apply -input=false -auto-approve -lock-timeout=5m
+
+      - name: Read outputs
+        id: outputs
+        run: |
+          {
+            echo "api_url=$(terraform output -raw api_url)"
+            echo "web_url=$(terraform output -raw web_url)"
+            echo "static_web_app_name=$(terraform output -raw static_web_app_name)"
+          } >> "$GITHUB_OUTPUT"
+
+  web:
+    name: Deploy web app
+    needs: infra
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: dev
+      url: ${{ needs.infra.outputs.web_url }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web app
+        env:
+          VITE_API_URL: ${{ needs.infra.outputs.api_url }}
+        run: npm run build --workspace @wehobby/web
+
+      - name: Azure login (OIDC)
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # The deployment token is read at run time and masked, so it is never
+      # stored as a GitHub secret.
+      - name: Get Static Web Apps deployment token
+        id: swa
+        env:
+          SWA_NAME: ${{ needs.infra.outputs.static_web_app_name }}
+        run: |
+          token=$(az staticwebapp secrets list --name "$SWA_NAME" --resource-group "$RESOURCE_GROUP" --query properties.apiKey --output tsv)
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to Static Web Apps
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1
+        with:
+          action: upload
+          azure_static_web_apps_api_token: ${{ steps.swa.outputs.token }}
+          app_location: web/dist
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
+
+      - name: Smoke test
+        env:
+          API_URL: ${{ needs.infra.outputs.api_url }}
+          WEB_URL: ${{ needs.infra.outputs.web_url }}
+        run: |
+          # The API scales to zero, so the first request can take a few seconds.
+          curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors "$API_URL/health"
+          echo
+          curl --fail --silent --show-error --output /dev/null --retry 5 --retry-delay 5 --retry-all-errors "$WEB_URL"
+          echo "Web app is up at $WEB_URL"
