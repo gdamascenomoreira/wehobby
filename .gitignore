@@ -141,3 +141,35 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Local env files (only .env.example is committed)
+.env.local
+.env.*.local
+
+# PWA dev build
+dev-dist/
+
+# Azure Functions
+local.settings.json
+.azurite/
+__azurite_db_*.json
+__blobstorage__/
+__queuestorage__/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+*.tfplan
+tfplan

@@ -1,0 +1,10 @@
+node_modules
+dist
+coverage
+dev-dist
+package-lock.json
+.terraform
+*.tfstate*
+
+# Markdown is written by hand; keep authors' formatting.
+*.md
