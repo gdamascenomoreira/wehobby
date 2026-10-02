@@ -27,6 +27,9 @@ LOCATION="westeurope"
 GITHUB_REPO="gdamascenomoreira/wehobby"
 STATE_ACCOUNT="stwehobbytfstate"
 
+# Git Bash only: stop it rewriting /subscriptions/... scopes into Windows paths.
+export MSYS_NO_PATHCONV=1
+
 az login
 az account set --subscription "$SUBSCRIPTION_ID"
 TENANT_ID=$(az account show --query tenantId --output tsv)
