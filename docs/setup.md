@@ -124,7 +124,24 @@ az ad app federated-credential create --id "$APP_ID" --parameters "{
 }"
 ```
 
-If login later fails with `AADSTS700213` (no matching federated identity record), compare the `subject` in the error with the ones above. Repos with a customised OIDC subject claim (`gh api repos/$GITHUB_REPO/actions/oidc/customization/sub`) need the subject in that format.
+GitHub can also send the **immutable** subject format, which includes the numeric owner and repo ids (for example `repo:gdamascenomoreira@278386729/wehobby@1401414357:pull_request`). It survives repo renames and can't be claimed by a recreated repo with the same name. Add the same two credentials in that format too:
+
+```bash
+OWNER_ID=$(gh api "repos/$GITHUB_REPO" --jq .owner.id)
+REPO_ID=$(gh api "repos/$GITHUB_REPO" --jq .id)
+IMMUTABLE_REPO="${GITHUB_REPO%%/*}@${OWNER_ID}/${GITHUB_REPO#*/}@${REPO_ID}"
+
+for pair in "github-environment-dev-ids:environment:dev" "github-pull-request-ids:pull_request"; do
+  az ad app federated-credential create --id "$APP_ID" --parameters "{
+    \"name\": \"${pair%%:*}\",
+    \"issuer\": \"https://token.actions.githubusercontent.com\",
+    \"subject\": \"repo:${IMMUTABLE_REPO}:${pair#*:}\",
+    \"audiences\": [\"api://AzureADTokenExchange\"]
+  }"
+done
+```
+
+If login still fails with `AADSTS700213` (no matching federated identity record), the error shows the subject GitHub sent. Add a credential with exactly that subject.
 
 ## 5. Role assignments (least privilege)
 
