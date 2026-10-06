@@ -5,9 +5,9 @@ variable "environment" {
 }
 
 variable "location" {
-  description = "Azure region for all resources. Must be an EU region for GDPR."
+  description = "Azure region for all resources. Dev is a lab with test data only, so it uses a low cost US region that also supports Static Web Apps; prod must use an EU region for GDPR."
   type        = string
-  default     = "westeurope"
+  default     = "eastus2"
 }
 
 variable "api_image_repository" {

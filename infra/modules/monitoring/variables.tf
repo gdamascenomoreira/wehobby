@@ -20,9 +20,9 @@ variable "retention_in_days" {
 }
 
 variable "daily_quota_gb" {
-  description = "Daily ingestion cap in GB for Log Analytics, to keep costs predictable. -1 means no cap."
+  description = "Daily ingestion cap in GB for Log Analytics, to keep costs predictable. 0.15 keeps a month inside the 5 GB free allowance. -1 means no cap."
   type        = number
-  default     = 1
+  default     = 0.15
 }
 
 variable "tags" {

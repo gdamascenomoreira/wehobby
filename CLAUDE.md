@@ -23,7 +23,7 @@ This repo is **public** and is also the owner's portfolio. Code quality, clear c
 
 ## Azure conventions
 
-* Region: an EU region, set as a Terraform variable (default `westeurope`).
+* Region: set as a Terraform variable. **prod** must use an EU region (`westeurope`) for GDPR. **dev** is a lab with test data only and runs in `eastus2`, for cost and because the dev subscription cannot create resources in West Europe.
 * Environments: `dev` and `prod`, each in its own resource group: `rg-wehobby-dev`, `rg-wehobby-prod`.
 * Naming: `<type>-wehobby-<env>` (for example `ca-wehobby-api-dev`, `kv-wehobby-dev`, `swa-wehobby-dev`). Storage accounts: `stwehobby<env>`.
 * Services talk to each other with **managed identities**. Secrets (VAPID keys, connection strings that cannot use identity) live in **Key Vault**.

@@ -23,7 +23,7 @@ Run all commands in **bash** (Git Bash, WSL, macOS or Linux). Set these once per
 
 ```bash
 SUBSCRIPTION_ID="<your-subscription-id>"
-LOCATION="westeurope"
+LOCATION="eastus2"   # dev is a lab: cheapest region this subscription accepts. Prod must be in the EU.
 GITHUB_REPO="gdamascenomoreira/wehobby"
 STATE_ACCOUNT="stwehobbytfstate"
 

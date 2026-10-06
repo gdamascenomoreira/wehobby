@@ -17,11 +17,13 @@ infra/
 
 ## What dev creates
 
+Dev is a lab with test data only, so it runs in `eastus2` (low cost, and the dev subscription cannot create resources in West Europe). Prod will use an EU region.
+
 All in `rg-wehobby-dev`, which you create by hand (see [`docs/setup.md`](../docs/setup.md)), and all tagged `project = "wehobby"`, `environment = "dev"`, `managed_by = "terraform"`.
 
 | Resource | Name | Notes |
 | --- | --- | --- |
-| Log Analytics workspace | `log-wehobby-dev` | 30 day retention, 1 GB per day cap |
+| Log Analytics workspace | `log-wehobby-dev` | 30 day retention, 0.15 GB per day cap (inside the free 5 GB per month) |
 | Application Insights | `appi-wehobby-dev` | Workspace based |
 | Key Vault | `kv-wehobby-dev` | RBAC, purge protection, firewall denies by default |
 | Container Apps environment | `cae-wehobby-dev` | Consumption plan, logs to Log Analytics |
