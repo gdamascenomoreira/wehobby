@@ -25,7 +25,7 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
 
 4. **Review + create** → **Create**
 
-![Resource group basics](scenarios/01-iaas/images/creatingRG.png)
+![Resource group basics](images/creatingRG.png)
 
 ---
 
