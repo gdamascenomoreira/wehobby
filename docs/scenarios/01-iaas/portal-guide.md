@@ -13,7 +13,7 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
 2. **Basics**
    - Subscription: _your subscription_
    - Resource group: `rg-wehobby-iaas-dev`
-   - Region: West Europe
+   - Region: North Europe
 3. **Tags**
 
    | Name | Value |
@@ -34,21 +34,24 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
 1. Open `rg-wehobby-iaas-dev` → **Cost Management** → **Budgets** → **Add**
 2. **Create a budget**
    - Name: `budget-wehobby-iaas-dev`
-   - Reset period: Monthly
+   - Reset period: Billing Month
    - Amount: _€_
 3. **Set alerts**
-   - Actual: 50%, 80%, 100%
+   - Actual: 50%, 80%
    - Forecasted: 100%
-   - Recipients: _your email (don't put it in the screenshot)_
+   - Recipients: _your email 
 4. **Create**
 
-<!-- ![Budget amount](images/02-budget-amount.png) -->
-<!-- ![Budget alerts](images/02-budget-alerts.png) -->
+![Creating Budget alert](images/creatingbudget.png)
 
 > **Good to know:** a budget only alerts, it never stops spending. Cost data can lag by several hours.
 
 > **My notes:**
->
+>As I am using a  Visual Studio subscription, it is important to use Billing Month instead of Monthly as the invoice period may be different.
+
+Documentation related:
+[Use cost alerts to monitor usage and spending](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/cost-mgt-alerts-monitor-usage-spending)
+[Tutorial: Create and manage budgets](https://learn.microsoft.com/en-us/azure/cost-management-billing/costs/tutorial-acm-create-budgets?tabs=psbudget)
 
 ---
 
@@ -58,22 +61,20 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
 2. **Basics**
    - Resource group: `rg-wehobby-iaas-dev`
    - Name: `vnet-wehobby-iaas-dev`
-   - Region: West Europe
+   - Region: North Europe
 3. **Security**: leave Bastion, Firewall and DDoS Protection off (cost)
 4. **IP addresses**
    - Address space: `10.10.0.0/16`
    - Edit the default subnet:
      - Name: `snet-app`
      - Range: `10.10.1.0/24`
-     - Service endpoints: `Microsoft.Storage`
+     - Service endpoints: `Microsoft.Storage.Global`
 5. **Tags**: same four tags as step 1
 6. **Review + create** → **Create**
 
-<!-- ![VNet basics](images/03-vnet-basics.png) -->
-<!-- ![Subnet with service endpoint](images/03-vnet-subnet.png) -->
+![VNet basics](images/creatingvnet.png)
+![Subnet with service endpoint](images/addingserviceendpoint.png)
 
-> **My notes:**
->
 
 ---
 
@@ -82,8 +83,11 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
 1. Search **Network security groups** → **Create**
    - Resource group: `rg-wehobby-iaas-dev`
    - Name: `nsg-wehobby-iaas-dev`
-   - Region: West Europe
+   - Region: North Europe
    - Tags: same four tags
+
+![Creating NSG](images/creatingnsg.png)
+
 2. Open the NSG → **Inbound security rules** → **Add**
 
    | Name | Source | Destination ports | Protocol | Action | Priority |
@@ -91,13 +95,14 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
    | Allow-HTTP-HTTPS | Service Tag: Internet | 80, 443 | TCP | Allow | 100 |
    | Allow-SSH-MyIP | IP addresses: _my public IP_ | 22 | TCP | Allow | 110 |
 
+
+   ![Creating Inbound rule Allow HTTP](images/nsgallowhttp.png)
+
+   ![Creating Inbound rule Allow SSH](images/nsgallowssh.png)
+
 3. **Subnets** → **Associate** → `vnet-wehobby-iaas-dev` / `snet-app`
 
-<!-- ![Inbound rules](images/04-nsg-rules.png) -->
-<!-- ![Subnet association](images/04-nsg-subnet.png) -->
-
-> **My notes:**
->
+![Associating subnet](images/associatesubnet.png)
 
 ---
 
@@ -107,12 +112,12 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
 2. **Basics**
    - Resource group: `rg-wehobby-iaas-dev`
    - Name: `stwehobbyiaasdev`
-   - Region: West Europe
+   - Region: North Europe
    - Performance: Standard
    - Redundancy: LRS
 3. **Advanced**
    - Allow enabling anonymous access on containers: off
-   - Enable storage account key access: _on / off (decision)_
+   - Enable storage account key access: on
    - Minimum TLS version: 1.2
    - Access tier: Hot
 4. **Networking**
@@ -121,16 +126,17 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
    - Add your client IP address
 5. **Tags**: same four tags
 6. **Review + create** → **Create**
+
+![Storage Account basics](images/creatingsa.png)
+
 7. Open the account → **Containers** → **+ Container** → name `photos`, private access
 
-<!-- ![Storage basics](images/05-st-basics.png) -->
-<!-- ![Storage advanced](images/05-st-advanced.png) -->
-<!-- ![Storage networking](images/05-st-networking.png) -->
+![Creating container](images/creatingcontainer.png)
 
 > **Good to know:** if key access is disabled, you need a data role (e.g. Storage Blob Data Contributor) on your own account to browse blobs in the portal.
 
 > **My notes:**
->
+>  I did not enable hierarchical namespace. It's designed for analytics workloads: real directories with atomic rename and delete, and POSIX style ACLs per file and folder, used by Spark, Databricks, Synapse and so on. WeHobby just stores photos and reads and writes them through the Blob API.
 
 ---
 
