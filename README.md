@@ -30,27 +30,7 @@ Plus safety from day one: report, block, delete, automated content screening and
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    U["Web app (React PWA)<br/>Azure Static Web Apps"]
-    E["Microsoft Entra External ID"]
-    A["API<br/>Azure Container Apps"]
-    B["Azure Blob Storage<br/>(photos)"]
-    P["PostgreSQL + PostGIS<br/>Flexible Server"]
-    F["Azure Functions<br/>(resize, strip EXIF)"]
-    C["Azure AI Content Safety"]
-    W["Web Push"]
-
-    U -- sign in --> E
-    U -- REST + token --> A
-    U -- upload with SAS --> B
-    A --> P
-    A --> W
-    B -- Event Grid --> F
-    F --> C
-```
-
-Across all services: Key Vault, managed identities, Application Insights, infrastructure as code with Terraform (plan on every pull request, apply on merge) and deployments through GitHub Actions with OIDC (no stored cloud secrets).
+In progress
 
 ## Tech stack
 
