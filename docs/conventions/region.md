@@ -6,8 +6,8 @@ All resources for an environment are deployed in a single EU region. All user da
 
 | Item | Value |
 |---|---|
-| Region | West Europe (`westeurope`), the default in `CLAUDE.md` |
-| Status | Default, to be confirmed against the criteria below |
+| Region | North Europe (`northeurope`) |
+| Status | Used by scenario 01 (deployed October 2026). Later scenarios must confirm every service they need is available there |
 
 ## Criteria
 

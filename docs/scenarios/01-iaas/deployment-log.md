@@ -7,22 +7,22 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 - One Ubuntu VM (B-series) running Docker Compose: app, PostgreSQL + PostGIS (`postgis/postgis` image, same as local dev), Caddy (HTTPS with Let's Encrypt)
 - PostgreSQL data on a separate Standard SSD data disk
 - Photos in Blob Storage, reached through a service endpoint, accessed with the VM's managed identity
-- SSH only from a trusted IP, no Azure Bastion hourly cost
+- SSH only through Azure Bastion Developer (free), no SSH port open to the internet
 
 ## Deployment order
 
 | # | Step | Status |
 |---|---|---|
-| 1 | Resource group | ⬜ |
-| 2 | Budget alert | ⬜ |
-| 3 | Virtual network and subnet | ⬜ |
-| 4 | Network security group | ⬜ |
-| 5 | Storage account | ⬜ |
-| 6 | Virtual machine | ⬜ |
-| 7 | Role assignment (VM identity on storage) | ⬜ |
-| 8 | DNS record | ⬜ |
-| 9 | VM configuration (disk, Docker, app) | ⬜ |
-| 10 | Backups | ⬜ |
+| 1 | Resource group | ✅ |
+| 2 | Budget alert | ✅ |
+| 3 | Virtual network and subnet | ✅ |
+| 4 | Network security group | ✅ |
+| 5 | Storage account | ✅ |
+| 6 | Virtual machine | ✅ |
+| 7 | Role assignment (VM identity on storage) | ✅ |
+| 8 | DNS record | ✅ `iaas` · ⬜ apex and `www` |
+| 9 | VM configuration (disk, Docker, placeholder site) | ✅ |
+| 10 | Backups | ⏭️ Skipped (decision) |
 
 ---
 
@@ -31,7 +31,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Setting | Value | Why |
 |---|---|---|
 | Name | `rg-wehobby-iaas-dev` | |
-| Region | West Europe | See [region](../../conventions/region.md) |
+| Region | North Europe | See [region](../../conventions/region.md) |
 | Tags | project, environment, managed_by, scenario | See [tagging](../../conventions/tagging.md) |
 
 **Notes / issues:**
@@ -76,8 +76,8 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Kind / redundancy | StorageV2, Standard LRS | Cheapest for dev |
 | Access tier | Hot | |
 | Anonymous blob access | Disabled | |
-| Shared key access | | |
-| Network | Selected networks: `snet-app` + my IP | |
+| Shared key access | Enabled | To review: user delegation SAS (signed with the managed identity) does not need it |
+| Network | All networks (public access) | Browsers upload and download photos directly with short lived SAS links. The container stays private. Was `snet-app` + my IP, which blocked browser uploads |
 | Container | `photos` (private) | |
 
 **Notes / issues:**
@@ -96,7 +96,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Public IP | Standard, static, DNS label | |
 | NIC NSG | None (subnet NSG applies) | |
 | Managed identity | System assigned | Keyless access to Blob |
-| Auto shutdown | | Cost control |
+| Auto shutdown | On | Cost control. Accepted trade off: the public site is down while the VM is off |
 | Boot diagnostics | Managed storage | |
 
 **Notes / issues:**
@@ -115,13 +115,15 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 
 | Setting | Value | Why |
 |---|---|---|
-| Record | `iaas.wehobby.app` A → VM public IP | |
-| DNS hosted at | | |
+| Records | `iaas`, `@` (apex) and `www`: A alias records → `pip-vm-wehobby-iaas-dev-01` | Alias records follow the IP and prevent dangling DNS. The apex points at this VM until scenario 03 |
+| DNS hosted at | Azure DNS zone `wehobby.app` in `rg-wehobby-shared`, delegated from Porkbun | Records managed in Azure, Bicep and Terraform |
 
 **Notes / issues:**
 
 ## 9. VM configuration
 
+| Setting | Value | Why |
+|---|---|---|
 | Docker | Docker Engine + Compose plugin from Docker's official apt repo | Newer than Ubuntu's package, includes `docker compose` v2 |
 | Docker log driver | `local` (`/etc/docker/daemon.json`) | Rotates logs, protects the OS disk |
 | `azureuser` in `docker` group | Yes | Run docker without sudo (root equivalent, single admin VM) |
@@ -135,6 +137,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Production plan | Nightly `pg_dump` to Blob via managed identity, 30 day lifecycle rule, data disk snapshots, regular restore tests | |
 
 **Notes / issues:**
+
 ---
 
 ## Measurements
