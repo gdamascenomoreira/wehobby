@@ -63,7 +63,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 |---|---|---|
 | Name | `nsg-wehobby-iaas-dev` | |
 | Inbound 80, 443 | Allow from Internet | Web traffic and Let's Encrypt validation |
-| Inbound 22 | Allow from my public IP only | No Bastion cost |
+| Inbound 22 | No custom rule. Bastion Developer allowed by default rule `AllowAzureLoadBalancerInBound` (`168.63.129.16`) | No SSH exposed to the internet |
 | Associated to | `snet-app` | |
 
 **Notes / issues:**
@@ -122,12 +122,19 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 
 ## 9. VM configuration
 
-_To be documented: data disk mount, Docker install, Compose stack, Caddy._
+| Docker | Docker Engine + Compose plugin from Docker's official apt repo | Newer than Ubuntu's package, includes `docker compose` v2 |
+| Docker log driver | `local` (`/etc/docker/daemon.json`) | Rotates logs, protects the OS disk |
+| `azureuser` in `docker` group | Yes | Run docker without sudo (root equivalent, single admin VM) |
 
 ## 10. Backups
 
-_To be documented: snapshots, `pg_dump` to Blob Cool tier, restore test._
+| Setting | Value | Why |
+|---|---|---|
+| Backups | Not implemented | Dev environment, no real data, cost reduction |
+| Accepted risk | Losing the data disk means losing the database | Data is disposable in dev |
+| Production plan | Nightly `pg_dump` to Blob via managed identity, 30 day lifecycle rule, data disk snapshots, regular restore tests | |
 
+**Notes / issues:**
 ---
 
 ## Measurements
