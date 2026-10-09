@@ -1,0 +1,171 @@
+name: Terraform CI
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/terraform-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  TERRAFORM_VERSION: 1.16.4
+  TFLINT_VERSION: v0.64.0
+  TRIVY_VERSION: v0.75.0
+
+jobs:
+  checks:
+    name: fmt, validate, tflint and trivy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff infra
+
+      - name: terraform validate
+        working-directory: infra/envs/dev
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6.3.2
+        with:
+          tflint_version: ${{ env.TFLINT_VERSION }}
+
+      - name: tflint
+        working-directory: infra
+        env:
+          # Avoids GitHub API rate limits when downloading the azurerm ruleset.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          tflint --init
+          tflint --recursive --config "$PWD/.tflint.hcl" --format compact
+
+      - name: trivy config
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          version: ${{ env.TRIVY_VERSION }}
+          scan-type: config
+          scan-ref: infra
+          exit-code: '1'
+
+  plan:
+    name: Plan (dev)
+    needs: checks
+    # OIDC tokens are not issued to pull requests from forks.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: 'true'
+      TF_IN_AUTOMATION: 'true'
+      TF_VAR_web_custom_domain: ${{ vars.WEB_CUSTOM_DOMAIN }}
+      TF_VAR_key_vault_name: ${{ vars.KEY_VAULT_NAME }}
+    defaults:
+      run:
+        working-directory: infra/envs/dev
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: terraform init
+        run: terraform init -input=false
+
+      - name: terraform plan
+        id: plan
+        env:
+          # The image for this commit is only built after merge; the plan shows
+          # what the deploy workflow would change.
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set +e
+          terraform plan -input=false -no-color -lock-timeout=5m \
+            -var "api_image_tag=sha-${HEAD_SHA::7}" \
+            -out=tfplan > plan.log 2>&1
+          exit_code=$?
+          set -e
+          cat plan.log
+          if [ "$exit_code" -eq 0 ]; then
+            terraform show -no-color tfplan > plan.txt
+          else
+            cp plan.log plan.txt
+          fi
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+
+      - name: Comment plan on pull request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PLAN_EXIT_CODE: ${{ steps.plan.outputs.exit_code }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const marker = '<!-- terraform-plan-dev -->';
+            const maxLength = 60000;
+            let plan = fs.readFileSync('infra/envs/dev/plan.txt', 'utf8');
+            if (plan.length > maxLength) {
+              plan = `${plan.slice(0, maxLength)}\n\n... truncated, see the workflow logs for the full plan.`;
+            }
+            const failed = process.env.PLAN_EXIT_CODE !== '0';
+            const summary =
+              plan.match(/^(Plan: .*|No changes\..*)$/m)?.[0] ?? (failed ? 'Plan failed' : 'Plan finished');
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              marker,
+              `### Terraform plan: dev ${failed ? '❌' : '✅'}`,
+              '',
+              `**${summary}**`,
+              '',
+              '<details><summary>Show plan</summary>',
+              '',
+              '```text',
+              plan,
+              '```',
+              '',
+              '</details>',
+              '',
+              `Commit ${context.payload.pull_request.head.sha.slice(0, 7)} · [workflow run](${runUrl})`,
+            ].join('\n');
+
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+            });
+            const existing = comments.find((comment) => comment.body?.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Fail if plan failed
+        if: steps.plan.outputs.exit_code != '0'
+        run: exit 1

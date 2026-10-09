@@ -58,6 +58,23 @@ infra/      Terraform modules and environments (dev, prod)
 docs/       Product requirements and decisions
 ```
 
+## Local development
+
+Requires Node.js 24 and Docker.
+
+```bash
+npm install
+cp api/.env.example api/.env.local
+cp web/.env.example web/.env.local
+
+npm run dev --workspace @wehobby/api   # http://localhost:3000/health
+npm run dev --workspace @wehobby/web   # http://localhost:5173
+
+docker compose up -d                   # PostGIS and Azurite (used from slice 2)
+```
+
+Checks run in CI on every pull request: `npm run lint`, `npm run typecheck`, `npm test` and `npm run build`. Azure setup is in [`docs/setup.md`](docs/setup.md) and the infrastructure is described in [`infra/README.md`](infra/README.md).
+
 ## Privacy by design
 
 * Locations are rounded to about 1 km before they are stored, and only the city or area is ever shown.
