@@ -1,8 +1,8 @@
 name: Deploy dev
 
+# On hold until scenario 03 (Container Apps). The app runs on the scenario 01 VM,
+# so this workflow only runs when started by hand.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -192,7 +192,7 @@ jobs:
           WEB_URL: ${{ needs.infra.outputs.web_url }}
         run: |
           # The API scales to zero, so the first request can take a few seconds.
-          curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors "$API_URL/health"
+          curl --fail --silent --show-error --retry 10 --retry-delay 6 --retry-all-errors "$API_URL/api/health"
           echo
           curl --fail --silent --show-error --output /dev/null --retry 5 --retry-delay 5 --retry-all-errors "$WEB_URL"
           echo "Web app is up at $WEB_URL"

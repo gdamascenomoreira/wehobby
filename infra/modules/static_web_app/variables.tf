@@ -9,7 +9,7 @@ variable "resource_group_name" {
 }
 
 variable "location" {
-  description = "Region for the Static Web App resource. Must be a region Static Web Apps supports, such as eastus2 or westeurope."
+  description = "Region for the Static Web App resource. Must be a region Static Web Apps supports, such as westeurope (it is not offered in northeurope)."
   type        = string
 }
 

@@ -40,7 +40,7 @@ module "static_web_app" {
 
   name                = "swa-${local.name_suffix}"
   resource_group_name = data.azurerm_resource_group.this.name
-  location            = var.location
+  location            = var.static_web_app_location
   custom_domain       = var.web_custom_domain
   tags                = local.tags
 }

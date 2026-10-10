@@ -63,7 +63,7 @@ resource "azurerm_container_app" "this" {
       startup_probe {
         transport               = "HTTP"
         port                    = var.target_port
-        path                    = "/health"
+        path                    = "/api/health"
         interval_seconds        = 3
         failure_count_threshold = 10
       }
@@ -71,14 +71,14 @@ resource "azurerm_container_app" "this" {
       liveness_probe {
         transport        = "HTTP"
         port             = var.target_port
-        path             = "/health"
+        path             = "/api/health"
         interval_seconds = 30
       }
 
       readiness_probe {
         transport        = "HTTP"
         port             = var.target_port
-        path             = "/health"
+        path             = "/api/health"
         interval_seconds = 10
       }
     }

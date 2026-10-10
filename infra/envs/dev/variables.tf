@@ -5,9 +5,15 @@ variable "environment" {
 }
 
 variable "location" {
-  description = "Azure region for all resources. Dev is a lab with test data only, so it uses a low cost US region that also supports Static Web Apps; prod must use an EU region for GDPR."
+  description = "Azure region for all resources except the Static Web App. North Europe for every environment (see docs/conventions/region.md)."
   type        = string
-  default     = "eastus2"
+  default     = "northeurope"
+}
+
+variable "static_web_app_location" {
+  description = "Region for the Static Web App resource. Static Web Apps is not offered in North Europe, so it uses the closest EU region. The site itself is served from a global edge."
+  type        = string
+  default     = "westeurope"
 }
 
 variable "api_image_repository" {
