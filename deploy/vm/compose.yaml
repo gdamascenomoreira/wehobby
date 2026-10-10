@@ -1,5 +1,5 @@
 # WeHobby on the scenario 01 VM. Lives in /opt/wehobby next to its .env file.
-# See docs/scenarios/01-iaas/portal-guide.md, step 11.
+# See docs/scenarios/01-iaas/portal-guide.md, steps 11 and 12.
 #
 # Only Caddy publishes ports. The API and the database are reachable on the
 # Compose network only.
@@ -14,6 +14,7 @@ services:
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-wehobby.app, www.wehobby.app, iaas.wehobby.app}
       API_UPSTREAM: api:3000
+      AUTH_ORIGIN: https://${AUTH_TENANT_SUBDOMAIN:?set AUTH_TENANT_SUBDOMAIN in .env}.ciamlogin.com
     volumes:
       # Certificates and ACME account, kept from step 9d.
       - ${DATA_DIR:-/datadisk}/caddy/data:/data
@@ -27,6 +28,17 @@ services:
     restart: unless-stopped
     environment:
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Caddy is the only client, and it sets X-Forwarded-For to the real client IP.
+      TRUST_PROXY: 'true'
+      # The password is hex (step 9d), so it needs no URL encoding.
+      DATABASE_URL: postgres://wehobby:${POSTGRES_PASSWORD}@db:5432/wehobby
+      AUTH_TENANT_ID: ${AUTH_TENANT_ID:?set AUTH_TENANT_ID in .env}
+      AUTH_TENANT_SUBDOMAIN: ${AUTH_TENANT_SUBDOMAIN}
+      AUTH_API_CLIENT_ID: ${AUTH_API_CLIENT_ID:?set AUTH_API_CLIENT_ID in .env}
+      AUTH_WEB_CLIENT_ID: ${AUTH_WEB_CLIENT_ID:?set AUTH_WEB_CLIENT_ID in .env}
+    depends_on:
+      db:
+        condition: service_healthy
 
   # Unchanged from step 9d, so the existing data on the data disk is reused.
   db:

@@ -17,6 +17,20 @@ jobs:
     name: Lint, typecheck, test and build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: wehobby
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+          POSTGRES_DB: wehobby
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wehobby"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,6 +54,8 @@ jobs:
 
       - name: Test
         run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://wehobby:ci-only-not-a-secret@localhost:5432/postgres
 
       - name: Build
         run: npm run build
@@ -51,6 +67,14 @@ jobs:
     env:
       IMAGE_PREFIX: local
       IMAGE_TAG: ci
+      # Settings for deploy/vm/compose.yaml. Placeholders only, never real ids.
+      SITE_ADDRESS: ':80'
+      DATA_DIR: ./.data
+      POSTGRES_PASSWORD: ci-only-not-a-secret
+      AUTH_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      AUTH_TENANT_SUBDOMAIN: wehobbyci
+      AUTH_API_CLIENT_ID: 00000000-0000-4000-8000-000000000002
+      AUTH_WEB_CLIENT_ID: 00000000-0000-4000-8000-000000000003
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -79,13 +103,16 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
 
-      # Runs deploy/vm/compose.yaml as on the VM, over plain HTTP on :80.
+      # Runs deploy/vm/compose.yaml as on the VM (steps 11 and 12), over plain
+      # HTTP on :80, with placeholder Entra ids.
+      - name: Start the database and apply migrations
+        working-directory: deploy/vm
+        run: |
+          docker compose up --detach --wait --wait-timeout 120 db
+          docker compose run --rm api node api/dist/migrate.js
+
       - name: Start the VM stack
         working-directory: deploy/vm
-        env:
-          SITE_ADDRESS: ':80'
-          DATA_DIR: ./.data
-          POSTGRES_PASSWORD: ci-only-not-a-secret
         run: docker compose up --detach --wait --wait-timeout 120
 
       - name: Smoke test
@@ -94,6 +121,12 @@ jobs:
           curl --fail --silent --show-error http://localhost/health
           echo
           curl --fail --silent --show-error http://localhost/api/health | tee /dev/stderr | grep -q '"status":"ok"'
+          echo
+          # The browser gets its sign in settings from the API.
+          curl --fail --silent --show-error http://localhost/api/config | tee /dev/stderr | grep -q "\"clientId\":\"$AUTH_WEB_CLIENT_ID\""
+          echo
+          # Profile routes refuse anonymous requests.
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost/api/me)" = 401
           # Unknown paths fall back to the app shell (client side routing).
           curl --fail --silent --show-error http://localhost/some/page | grep -q '<div id="root">'
           # Only Caddy is published on the host.
@@ -101,11 +134,10 @@ jobs:
             echo "::error::The API is reachable on the host"
             exit 1
           fi
-          curl --silent --show-error --head http://localhost/ | grep -i 'content-security-policy'
+          # The CSP allows the sign in origin.
+          curl --silent --show-error --head http://localhost/ | grep -i 'content-security-policy' | grep -q "https://$AUTH_TENANT_SUBDOMAIN.ciamlogin.com"
 
       - name: Logs
         if: always()
         working-directory: deploy/vm
-        env:
-          POSTGRES_PASSWORD: unused
         run: docker compose logs --no-color || true
