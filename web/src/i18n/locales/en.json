@@ -1,0 +1,16 @@
+{
+  "app": {
+    "name": "WeHobby",
+    "tagline": "Share the everyday side of your hobby."
+  },
+  "language": {
+    "label": "Language",
+    "pt": "Português",
+    "en": "English"
+  },
+  "apiStatus": {
+    "label": "API status: {{status}}",
+    "checking": "checking…",
+    "unavailable": "unavailable"
+  }
+}

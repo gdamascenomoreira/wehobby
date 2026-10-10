@@ -30,7 +30,7 @@ The same app is deployed in several infrastructure scenarios (see `docs/README.m
 
 ## Azure conventions
 
-* Region: North Europe (`northeurope`), set as a variable in infrastructure code. See `docs/conventions/region.md`.
+* Region: North Europe (`northeurope`) for every environment (EU, for GDPR), set as a variable in infrastructure code. See `docs/conventions/region.md`.
 * Environments: `dev` and `prod`, each in its own resource group: `rg-wehobby-dev`, `rg-wehobby-prod`.
 * Naming: `<type>-wehobby-<env>` (for example `ca-wehobby-api-dev`, `kv-wehobby-dev`, `swa-wehobby-dev`). Storage accounts: `stwehobby<env>`.
 * Services talk to each other with **managed identities**. Secrets (VAPID keys, connection strings that cannot use identity) live in **Key Vault**.
@@ -48,7 +48,7 @@ The same app is deployed in several infrastructure scenarios (see `docs/README.m
 
 ## Local development
 
-* Development happens in **GitHub Codespaces** (`.devcontainer/`). The owner's corporate laptop cannot reach the public npm registry, and the lockfile must only reference `registry.npmjs.org`.
+* Development runs on the owner's laptop or in **GitHub Codespaces** (`.devcontainer/`). The lockfile must only reference `registry.npmjs.org`.
 * `docker compose up` runs PostGIS (`postgis/postgis`) and Azurite (Blob emulator).
 * Local settings go in `.env.local` files, which are git ignored. Commit `.env.example` files with placeholder values only.
 

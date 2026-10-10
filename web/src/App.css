@@ -1,0 +1,96 @@
+:root {
+  --color-brand: #c2553a;
+  --color-bg: #fffaf6;
+  --color-surface: #ffffff;
+  --color-text: #2b211d;
+  --color-muted: #6b5a52;
+  --color-ok: #2f6b4f;
+  --color-error: #a3322a;
+  --space: 1rem;
+
+  color-scheme: light;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+.app-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space);
+  padding-top: max(var(--space), env(safe-area-inset-top));
+}
+
+.language-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.language-picker select {
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-muted);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(var(--space) * 2) var(--space);
+  text-align: center;
+}
+
+.home__title {
+  margin: 0;
+  font-size: 2.5rem;
+  color: var(--color-brand);
+}
+
+.home__tagline {
+  margin: 0.5rem 0 2rem;
+  font-size: 1.125rem;
+  color: var(--color-muted);
+}
+
+.api-status {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.api-status--ok {
+  color: var(--color-ok);
+}
+
+.api-status--unavailable {
+  color: var(--color-error);
+}
+
+@media (min-width: 768px) {
+  .home__title {
+    font-size: 3.5rem;
+  }
+}
