@@ -1,0 +1,45 @@
+# WeHobby on the scenario 01 VM. Lives in /opt/wehobby next to its .env file.
+# See docs/scenarios/01-iaas/portal-guide.md, step 11.
+#
+# Only Caddy publishes ports. The API and the database are reachable on the
+# Compose network only.
+
+services:
+  caddy:
+    image: ${IMAGE_PREFIX:-ghcr.io/gdamascenomoreira}/wehobby-web:${IMAGE_TAG:?set IMAGE_TAG in .env}
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-wehobby.app, www.wehobby.app, iaas.wehobby.app}
+      API_UPSTREAM: api:3000
+    volumes:
+      # Certificates and ACME account, kept from step 9d.
+      - ${DATA_DIR:-/datadisk}/caddy/data:/data
+      - ${DATA_DIR:-/datadisk}/caddy/config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+
+  api:
+    image: ${IMAGE_PREFIX:-ghcr.io/gdamascenomoreira}/wehobby-api:${IMAGE_TAG:?set IMAGE_TAG in .env}
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+
+  # Unchanged from step 9d, so the existing data on the data disk is reused.
+  db:
+    image: postgis/postgis:17-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wehobby
+      POSTGRES_USER: wehobby
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - ${DATA_DIR:-/datadisk}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U wehobby -d wehobby']
+      interval: 10s
+      timeout: 5s
+      retries: 5
