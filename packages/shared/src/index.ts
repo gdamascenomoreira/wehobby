@@ -1,1 +1,31 @@
+export {
+  API_ERROR_CODES,
+  ApiErrorCodeSchema,
+  ApiErrorSchema,
+  PublicConfigSchema,
+  type ApiError,
+  type ApiErrorCode,
+  type PublicConfig,
+} from './api.js';
 export { HealthResponseSchema, type HealthResponse } from './health.js';
+export {
+  BIO_MAX_LENGTH,
+  BioSchema,
+  CreateProfileSchema,
+  DISPLAY_NAME_MAX_LENGTH,
+  DisplayNameSchema,
+  LANGUAGES,
+  LanguageSchema,
+  ProfileSchema,
+  RESERVED_USERNAMES,
+  UpdateProfileSchema,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  UsernameAvailabilitySchema,
+  UsernameSchema,
+  type CreateProfile,
+  type Language,
+  type Profile,
+  type UpdateProfile,
+  type UsernameAvailability,
+} from './profile.js';
