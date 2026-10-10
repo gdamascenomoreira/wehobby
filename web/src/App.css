@@ -33,9 +33,28 @@ body {
 
 .app-header {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space);
   padding: var(--space);
   padding-top: max(var(--space), env(safe-area-inset-top));
+}
+
+.app-header__brand {
+  font-weight: 700;
+  color: var(--color-brand);
+  text-decoration: none;
+}
+
+.app-header__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space);
+  font-size: 0.875rem;
+}
+
+.app-header__nav a {
+  color: inherit;
 }
 
 .language-picker {
@@ -53,6 +72,14 @@ body {
   background: var(--color-surface);
   color: inherit;
   font: inherit;
+}
+
+.page {
+  width: 100%;
+  max-width: 32rem;
+  margin: 0 auto;
+  padding: var(--space);
+  padding-bottom: max(var(--space), env(safe-area-inset-bottom));
 }
 
 .home {
@@ -87,6 +114,107 @@ body {
 
 .api-status--unavailable {
   color: var(--color-error);
+}
+
+.home__hint {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.button {
+  min-height: 44px;
+  padding: 0 1.25rem;
+  border: 1px solid var(--color-muted);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button--primary {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space);
+  margin: var(--space) 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field input,
+.field textarea,
+.field select {
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-muted);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.field [aria-invalid='true'] {
+  border-color: var(--color-error);
+}
+
+.field--checkbox {
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.field--checkbox input {
+  width: 24px;
+  height: 24px;
+  min-height: 0;
+}
+
+.field--checkbox .field__error {
+  flex-basis: 100%;
+}
+
+.field__hint,
+.field__error,
+.field__success,
+.form__error,
+.form__success {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.field__hint {
+  color: var(--color-muted);
+}
+
+.field__error,
+.form__error {
+  color: var(--color-error);
+}
+
+.field__success,
+.form__success {
+  color: var(--color-ok);
 }
 
 @media (min-width: 768px) {

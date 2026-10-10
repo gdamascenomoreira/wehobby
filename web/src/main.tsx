@@ -1,6 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 import { App } from './App';
+import { createMsalAuthClient } from './auth/msalAuthClient';
+import { SessionProvider } from './auth/session';
 import './i18n';
 import './App.css';
 
@@ -11,6 +14,10 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <SessionProvider createAuthClient={createMsalAuthClient}>
+        <App />
+      </SessionProvider>
+    </BrowserRouter>
   </StrictMode>,
 );

@@ -3,6 +3,10 @@
     "name": "WeHobby",
     "tagline": "Share the everyday side of your hobby."
   },
+  "nav": {
+    "home": "WeHobby home",
+    "settings": "Settings"
+  },
   "language": {
     "label": "Language",
     "pt": "Português",
@@ -12,5 +16,59 @@
     "label": "API status: {{status}}",
     "checking": "checking…",
     "unavailable": "unavailable"
+  },
+  "session": {
+    "loading": "Loading…",
+    "error": "We could not reach WeHobby. Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "signIn": {
+    "intro": "Join people who love the same hobby as you: crochet, plants and photography.",
+    "button": "Sign in or create an account",
+    "hint": "With your email or your Google account."
+  },
+  "home": {
+    "welcome": "Hello, {{name}}!",
+    "comingSoon": "Your hobby feed is coming soon."
+  },
+  "profile": {
+    "username": {
+      "label": "Username",
+      "hint": "3 to 30 characters: lowercase letters, digits and _. You cannot change it later.",
+      "invalid": "Use 3 to 30 lowercase letters, digits or _. Some names are reserved.",
+      "taken": "This username is already taken.",
+      "available": "This username is available."
+    },
+    "displayName": {
+      "label": "Display name",
+      "invalid": "Enter a name of up to 50 characters."
+    },
+    "bio": {
+      "label": "Bio (optional)",
+      "invalid": "Use up to 160 characters."
+    },
+    "language": {
+      "label": "App language"
+    },
+    "age": {
+      "label": "I am 16 or older",
+      "invalid": "You must be 16 or older to use WeHobby."
+    }
+  },
+  "onboarding": {
+    "title": "Create your profile",
+    "intro": "This is how other hobbyists will see you.",
+    "submit": "Create profile"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Signed in as @{{username}}",
+    "save": "Save changes",
+    "saved": "Changes saved.",
+    "signOut": "Sign out"
+  },
+  "form": {
+    "saving": "Saving…",
+    "error": "Something went wrong. Please try again."
   }
 }

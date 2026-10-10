@@ -5,6 +5,8 @@
 # VM's .env. Without it Caddy serves plain HTTP on :80 and requests no
 # certificates, which is also how it runs locally and in CI.
 # API_UPSTREAM is the API container, reached on the Docker network only.
+# AUTH_ORIGIN is the Entra External ID sign in origin (https://<tenant>.ciamlogin.com):
+# the browser fetches tokens from it, so the CSP must allow it.
 
 {$SITE_ADDRESS::80} {
 	encode zstd gzip
@@ -20,7 +22,7 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 		Permissions-Policy "camera=(self), geolocation=(self), microphone=(), payment=(), usb=()"
 		Cross-Origin-Opener-Policy "same-origin"
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' {$AUTH_ORIGIN}; frame-src 'self' {$AUTH_ORIGIN}; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
 		-Server
 	}
 
