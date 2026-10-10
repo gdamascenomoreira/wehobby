@@ -2,7 +2,7 @@
 
 Replaces the hosting part of [slice 1](slice-1.md) for scenario 01. The Terraform, Container Apps, Static Web Apps and `functions/` parts of slice 1 are on hold until scenario 03.
 
-Paste everything below the line into Claude Code, from the root of the `wehobby` repo, in a GitHub Codespace.
+Paste everything below the line into Claude Code, from the root of the `wehobby` repo.
 
 ---
 
@@ -16,7 +16,7 @@ We are building **milestone 1** of the WeHobby MVP: a monorepo that builds and t
 |---|---|
 | Hosting | Scenario 01 VM (`vm-wehobby-iaas-dev-01`, North Europe), Docker Compose in `/opt/wehobby`, data on `/datadisk` |
 | Domain | `wehobby.app` is the main address, `www.wehobby.app` redirects to it, `iaas.wehobby.app` keeps working. The apex points at the VM until scenario 03 |
-| Auto shutdown | Stays on. Nightly downtime is accepted |
+| Auto shutdown | Stays on (the schedule is kept). Nightly downtime of the public site is accepted |
 | Edge | Caddy serves the web build and proxies `/api/*` to the API container. Same origin on the VM, so no CORS |
 | Images | Public packages on ghcr.io: `ghcr.io/gdamascenomoreira/wehobby-web` (Caddy + web build) and `ghcr.io/gdamascenomoreira/wehobby-api` |
 | Deploy | Manual in this milestone, through Bastion. Automated deploys (OIDC + `az vm run-command`) are milestone 2 |
@@ -99,7 +99,7 @@ Give me a short plan: the folder tree, the main library choices with versions, a
 
 ## Done when
 
-* `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass in the Codespace.
+* `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass locally.
 * Both images build, and the production compose file runs locally and shows "API status: ok" on `http://localhost`.
 * CI passes on the pull request.
 * After merging and following step 11, `https://wehobby.app` shows "API status: ok" in Portuguese or English, with a valid certificate.

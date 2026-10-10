@@ -4,7 +4,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 
 ## Architecture (budget version)
 
-- One Ubuntu VM (B-series) running Docker Compose: app, PostgreSQL + PostGIS (`postgis/postgis` image, same as local dev), Caddy (HTTPS with Let's Encrypt)
+- One Ubuntu VM (B-series) running Docker Compose: Caddy (HTTPS with Let's Encrypt, serves the web app, proxies `/api`), the API, PostgreSQL + PostGIS (`postgis/postgis:17-3.5`, same as local dev)
 - PostgreSQL data on a separate Standard SSD data disk
 - Photos in Blob Storage, reached through a service endpoint, accessed with the VM's managed identity
 - SSH only through Azure Bastion Developer (free), no SSH port open to the internet
@@ -23,6 +23,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | 8 | DNS record | ✅ `iaas` · ⬜ apex and `www` |
 | 9 | VM configuration (disk, Docker, placeholder site) | ✅ |
 | 10 | Backups | ⏭️ Skipped (decision) |
+| 11 | App deployment (milestone 1) | ⬜ |
 
 ---
 
@@ -135,6 +136,21 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Backups | Not implemented | Dev environment, no real data, cost reduction |
 | Accepted risk | Losing the data disk means losing the database | Data is disposable in dev |
 | Production plan | Nightly `pg_dump` to Blob via managed identity, 30 day lifecycle rule, data disk snapshots, regular restore tests | |
+
+**Notes / issues:**
+
+---
+
+## 11. App deployment
+
+| Setting | Value | Why |
+|---|---|---|
+| Compose file | `deploy/vm/compose.yaml` from the repo, in `/opt/wehobby` | Same file in the repo and on the VM, reviewed in pull requests |
+| Images | `ghcr.io/gdamascenomoreira/wehobby-web` (Caddy + web build) and `wehobby-api`, public packages | No registry cost, the VM pulls without credentials |
+| Version | `IMAGE_TAG=sha-<commit>` in `/opt/wehobby/.env` | Every deploy is a known commit; rollback is the previous tag |
+| Exposed ports | 80 and 443 (Caddy only) | API and database stay on the Compose network |
+| Site names | `wehobby.app`, `www.wehobby.app` (redirects to the apex), `iaas.wehobby.app` | |
+| Deploys | Manual through Bastion | Automated deploys come in milestone 2 |
 
 **Notes / issues:**
 
