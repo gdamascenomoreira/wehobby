@@ -21,13 +21,15 @@ describe('App', () => {
     vi.unstubAllGlobals();
   });
 
-  it('shows the API status from /health', async () => {
+  it('shows the API status from /api/health', async () => {
     render(<App />);
 
     expect(await screen.findByText('API status: ok')).toBeInTheDocument();
+    // Same origin request, so it works behind Caddy and the dev server proxy.
+    expect(fetch).toHaveBeenCalledWith('/api/health', expect.anything());
   });
 
-  it('shows the API as unavailable when /health fails', async () => {
+  it('shows the API as unavailable when /api/health fails', async () => {
     mockHealthResponse(new Response(null, { status: 503 }));
     render(<App />);
 
