@@ -173,3 +173,6 @@ override.tf.json
 terraform.rc
 *.tfplan
 tfplan
+
+# Local runs of deploy/vm/compose.yaml
+deploy/vm/.data/

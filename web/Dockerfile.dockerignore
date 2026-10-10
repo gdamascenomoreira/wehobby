@@ -1,0 +1,19 @@
+# Build context is the repo root; BuildKit picks up <Dockerfile>.dockerignore.
+**
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!packages/shared/package.json
+!packages/shared/tsconfig.json
+!packages/shared/tsconfig.build.json
+!packages/shared/src/**
+!web/package.json
+!web/tsconfig.json
+!web/vite.config.ts
+!web/index.html
+!web/Caddyfile
+!web/public/**
+!web/src/**
+**/*.test.ts
+**/*.test.tsx
+web/src/test/**

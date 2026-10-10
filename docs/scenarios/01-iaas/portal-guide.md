@@ -1022,3 +1022,207 @@ Expected: `202`
 > **My notes:**
 >[Overview of Azure Blob backup](https://learn.microsoft.com/en-us/azure/backup/blob-backup-overview?tabs=operational-backup)
 >[An overview of Azure VM backup](https://learn.microsoft.com/en-us/azure/backup/blob-backup-overview?tabs=operational-backup)
+---
+
+## Step 11: Deploy the app (milestone 1)
+
+Replaces the placeholder page from step 9d with the real app: the web app and the API, behind Caddy, at `https://wehobby.app`. The database container and the data on `/datadisk` are kept.
+
+| Container | Image | Ports | Data |
+|---|---|---|---|
+| `caddy` | `ghcr.io/gdamascenomoreira/wehobby-web` (Caddy + web build) | 80, 443 (public) | `/datadisk/caddy` |
+| `api` | `ghcr.io/gdamascenomoreira/wehobby-api` | 3000 (Compose network only) | |
+| `db` | `postgis/postgis:17-3.5` (unchanged) | 5432 (Compose network only) | `/datadisk/postgres` |
+
+The compose file comes from the repo (`deploy/vm/compose.yaml`). The version that runs is set by `IMAGE_TAG` in `/opt/wehobby/.env`.
+
+### 11a. DNS for the apex and www
+
+Do this **before** step 11c. Caddy asks Let's Encrypt for the new names as soon as it starts, and the validation fails if they do not point at the VM yet.
+
+1. Open the DNS zone `wehobby.app` (in `rg-wehobby-shared`) → **Recordsets** → **Add**
+
+   | Field | Value |
+   |---|---|
+   | Name | `@` |
+   | Type | A |
+   | Alias record set | Yes |
+   | Alias type | Azure resource |
+   | Azure resource | `pip-vm-wehobby-iaas-dev-01` |
+   | TTL | 1 hour |
+
+2. **Add**, then repeat with Name `www`
+3. Check from your computer:
+
+```powershell
+nslookup wehobby.app
+nslookup www.wehobby.app
+```
+
+Expected: both return the VM public IP, the same as `iaas.wehobby.app`.
+
+> **Good to know:** the apex (`wehobby.app` itself) cannot be a CNAME, which is why both records are A alias records pointing at the public IP resource. When the site moves to another scenario, only these two records change.
+
+### 11b. Publish the images
+
+1. Merge the milestone 1 pull request. The **Images** workflow (GitHub → **Actions** → **Images**) builds and pushes both images
+2. Open the finished run → **Summary**, and write down the tag, for example `sha-1a2b3c4`
+3. Make both packages public, once (new packages on ghcr.io are private):
+   - GitHub → your profile → **Packages** → `wehobby-web` → **Package settings** → **Change visibility** → **Public**
+   - Same for `wehobby-api`
+
+> **Good to know:** public packages let the VM pull without storing a GitHub token on it. The images contain only the built app, no secrets.
+
+### 11c. Switch the VM to the app
+
+Connect with Bastion (step 9a), then:
+
+#### 1. Back up the step 9d files
+
+```bash
+cd /opt/wehobby
+```
+
+```bash
+mkdir -p backup-step9 && cp -rp compose.yaml Caddyfile site .env backup-step9/
+```
+
+#### 2. Download the compose file
+
+Use the full commit SHA of the merge commit (GitHub → **Commits** → copy the full SHA), so the file matches the images:
+
+```bash
+COMMIT=<full commit sha>
+```
+
+```bash
+curl -fsSL -o compose.yaml "https://raw.githubusercontent.com/gdamascenomoreira/wehobby/$COMMIT/deploy/vm/compose.yaml"
+```
+
+```bash
+head -5 compose.yaml
+```
+
+Expected: the comment `# WeHobby on the scenario 01 VM.`
+
+#### 3. Set the image tag
+
+`.env` already holds `POSTGRES_PASSWORD` from step 9d. Keep it, and add the tag from 11b:
+
+```bash
+echo "IMAGE_TAG=sha-1a2b3c4" >> .env
+```
+
+```bash
+grep -c '^POSTGRES_PASSWORD=' .env; grep '^IMAGE_TAG=' .env
+```
+
+Expected: `1` and your tag. (Do not `cat .env`: it would print the password.)
+
+#### 4. Validate, pull and start
+
+```bash
+docker compose config --quiet
+```
+
+```bash
+docker compose pull
+```
+
+```bash
+docker compose up -d
+```
+
+```bash
+docker compose ps
+```
+
+Expected: `caddy`, `api` and `db` running and `healthy`. `db` is not recreated because its settings did not change.
+
+```bash
+docker compose logs caddy --tail 50 | grep -i -E 'certificate obtained|error'
+```
+
+Look for `certificate obtained successfully` for `wehobby.app` and `www.wehobby.app` (`iaas.wehobby.app` reuses the certificate from step 9d).
+
+| Setting | Why |
+|---|---|
+| Web build inside the Caddy image | The site and the edge config always ship together, as one tested version |
+| `api` has no `ports` | Only Caddy is reachable from the internet. It forwards `/api/*` to the API |
+| `IMAGE_TAG` in `.env` | Every deploy is a known commit; changing the tag is the deploy and the rollback |
+
+### 11d. Test
+
+From your computer:
+
+```powershell
+curl.exe -sI https://wehobby.app
+curl.exe -sI https://www.wehobby.app
+curl.exe -s https://wehobby.app/api/health
+curl.exe -s https://iaas.wehobby.app/health
+```
+
+Expected:
+- `HTTP/2 200` for `wehobby.app`, with `strict-transport-security` and `content-security-policy` headers
+- `HTTP/2 301` from `www` with `location: https://wehobby.app/`
+- `{"status":"ok","version":"sha-..."}`
+- `ok`
+
+Open `https://wehobby.app` on your phone: it shows **API status: ok**, and the language picker switches between Portuguese and English.
+
+From the VM:
+
+```bash
+sudo ss -tlnp | grep -E ':(80|443|3000|5432) '
+```
+
+Expected: 80 and 443 only.
+
+```bash
+docker compose exec db psql -U wehobby -d wehobby -c "SELECT PostGIS_Version();"
+```
+
+Expected: `3.5 ...`, the same database as in step 9e.
+
+#### Clean up
+
+Once everything works, remove the files the new image replaces (the copies stay in `backup-step9/`):
+
+```bash
+rm -r site Caddyfile
+```
+
+### 11e. Roll back
+
+To a previous version: put its tag back and restart.
+
+```bash
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=sha-<previous tag>/' .env
+```
+
+```bash
+docker compose up -d
+```
+
+Back to the step 9d placeholder:
+
+```bash
+cp -rp backup-step9/compose.yaml backup-step9/Caddyfile backup-step9/site . && docker compose up -d --remove-orphans
+```
+
+### Result
+
+| Check | Result |
+|---|---|
+| `@` and `www` resolve to the VM | |
+| Image tag deployed | |
+| Certificates for `wehobby.app` and `www` | |
+| `https://wehobby.app` shows API status: ok | |
+| `www` redirects to the apex | |
+| `/api/health` | |
+| Only 80 and 443 listening | |
+| Database data still there | |
+
+> **Good to know:** with auto shutdown on, the site is down while the VM is off. When the VM starts again, Docker starts and `restart: unless-stopped` brings the three containers back, with no manual step.
+
+> **Good to know:** the `Strict-Transport-Security` header tells browsers to use HTTPS only. The whole `.app` domain is already on the browsers' HTTPS-only list, so this adds no new risk, but it means every `*.wehobby.app` name must always have a valid certificate.

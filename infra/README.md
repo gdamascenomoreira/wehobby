@@ -17,7 +17,9 @@ infra/
 
 ## What dev creates
 
-Dev is a lab with test data only, so it runs in `eastus2` (low cost, and the dev subscription cannot create resources in West Europe). Prod will use an EU region.
+> **On hold until scenario 03 (Container Apps).** Nothing here is deployed today; the app runs on the scenario 01 VM (`docs/scenarios/01-iaas/portal-guide.md`). `deploy-dev.yml` only runs when started by hand.
+
+Every resource runs in North Europe (`northeurope`), except the Static Web App, which is not offered there and uses West Europe (`westeurope`).
 
 All in `rg-wehobby-dev`, which you create by hand (see [`docs/setup.md`](../docs/setup.md)), and all tagged `project = "wehobby"`, `environment = "dev"`, `managed_by = "terraform"`.
 

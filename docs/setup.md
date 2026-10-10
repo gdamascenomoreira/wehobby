@@ -1,5 +1,7 @@
 # One time setup (dev)
 
+> **On hold until scenario 03 (Container Apps).** The app currently runs on the scenario 01 VM; see [`scenarios/01-iaas/portal-guide.md`](scenarios/01-iaas/portal-guide.md).
+
 These are the steps the owner runs once, by hand, before GitHub Actions can plan and deploy the dev environment. Everything else is created by Terraform from `infra/envs/dev`.
 
 What you end up with:
@@ -23,7 +25,7 @@ Run all commands in **bash** (Git Bash, WSL, macOS or Linux). Set these once per
 
 ```bash
 SUBSCRIPTION_ID="<your-subscription-id>"
-LOCATION="eastus2"   # dev is a lab: cheapest region this subscription accepts. Prod must be in the EU.
+LOCATION="northeurope"   # every environment, see docs/conventions/region.md
 GITHUB_REPO="gdamascenomoreira/wehobby"
 STATE_ACCOUNT="stwehobbytfstate"
 

@@ -1,0 +1,48 @@
+# Edge for the scenario 01 VM: HTTPS (Let's Encrypt), the web build and the API.
+#
+# SITE_ADDRESS sets the names Caddy serves and gets certificates for. Run the
+# same image locally over plain HTTP with SITE_ADDRESS=:80.
+# API_UPSTREAM is the API container, reached on the Docker network only.
+
+{$SITE_ADDRESS:wehobby.app, www.wehobby.app, iaas.wehobby.app} {
+	encode zstd gzip
+
+	@www host www.wehobby.app
+	redir @www https://wehobby.app{uri} permanent
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), geolocation=(self), microphone=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		-Server
+	}
+
+	# Used by monitoring and the load tests since step 9d.
+	handle /health {
+		respond "ok" 200
+	}
+
+	handle /api/* {
+		reverse_proxy {$API_UPSTREAM:api:3000}
+	}
+
+	handle {
+		root * /srv
+
+		# Vite adds a content hash to every file in /assets.
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+		# The app shell and the service worker must be revalidated, or users
+		# keep an old version of the app.
+		@shell path / /index.html /sw.js /registerSW.js /workbox-*.js /manifest.webmanifest
+		header @shell Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+}

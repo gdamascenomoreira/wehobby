@@ -1,7 +1,7 @@
 # Copy to terraform.tfvars for a local plan. terraform.tfvars is git ignored.
 # Placeholder values only.
 
-location      = "eastus2"
+location      = "northeurope"
 api_image_tag = "sha-0000000"
 
 # Only if kv-wehobby-dev is already taken by someone else:

@@ -30,7 +30,24 @@ Plus safety from day one: report, block, delete, automated content screening and
 
 ## Architecture
 
-In progress
+The same container images run in several Azure infrastructure scenarios, compared on cost, effort and resilience (see [`docs/README.md`](docs/README.md)). Today the app runs on **scenario 01 (IaaS)**: one Ubuntu VM in North Europe.
+
+```mermaid
+flowchart LR
+  browser[Browser / PWA] -- HTTPS --> caddy
+  subgraph vm[Azure VM · Docker Compose]
+    caddy[Caddy<br/>HTTPS + web build] -- /api --> api[API<br/>Fastify]
+    api --> db[(PostgreSQL<br/>+ PostGIS)]
+  end
+  api -. managed identity .-> blob[(Blob Storage<br/>photos)]
+```
+
+* Caddy gets Let's Encrypt certificates, serves the web app and proxies `/api/*` to the API, so the browser sees a single origin and no CORS is needed.
+* Only ports 80 and 443 are open. Admin access goes through Azure Bastion.
+* The database lives on a separate data disk. Photos go to Blob Storage, reached with the VM's managed identity (no keys).
+* Images are built by GitHub Actions and published to GitHub Container Registry. The VM runs a specific commit, set by `IMAGE_TAG`.
+
+How the VM was built, step by step: [`docs/scenarios/01-iaas/portal-guide.md`](docs/scenarios/01-iaas/portal-guide.md).
 
 ## Tech stack
 
@@ -42,38 +59,51 @@ In progress
 | Storage | Azure Blob Storage, direct browser uploads with short lived SAS |
 | Identity | Microsoft Entra External ID |
 | Moderation | Azure AI Content Safety |
-| Infrastructure as code | Terraform (azurerm), remote state in Azure Storage, TFLint and Trivy checks |
-| Azure hosting | Container Apps, Static Web Apps, Functions, Key Vault |
-| CI/CD | GitHub Actions with OIDC federation to Azure |
+| Edge | Caddy (HTTPS with Let's Encrypt, static files, reverse proxy) |
+| Hosting today | Azure VM with Docker Compose (scenario 01) |
+| Hosting later | Container Apps, Static Web Apps, Functions, Key Vault (scenario 03), with Terraform (azurerm) |
+| CI/CD | GitHub Actions, images on GitHub Container Registry |
 | Observability | Application Insights |
 
 ## Repository structure
 
 ```
-web/        React PWA
+web/        React PWA, plus the Caddy edge image (Dockerfile, Caddyfile)
 api/        Node.js API
-functions/  Azure Functions (image processing)
 packages/   Shared TypeScript types and validation
-infra/      Terraform modules and environments (dev, prod)
-docs/       Product requirements and decisions
+deploy/vm/  Docker Compose file that runs on the scenario 01 VM
+functions/  Azure Functions (image processing, scenario 03)
+infra/      Terraform modules and environments (scenario 03, on hold)
+docs/       Product requirements, conventions and deployment guides
 ```
 
 ## Local development
 
-Requires Node.js 24 and Docker.
+Requires Node.js 24. Docker is optional for now.
 
 ```bash
 npm install
 cp api/.env.example api/.env.local
 cp web/.env.example web/.env.local
 
-npm run dev --workspace @wehobby/api   # http://localhost:3000/health
-npm run dev --workspace @wehobby/web   # http://localhost:5173
+npm run dev --workspace @wehobby/api   # http://localhost:3000/api/health
+npm run dev --workspace @wehobby/web   # http://localhost:5173 (proxies /api to the API)
 
-docker compose up -d                   # PostGIS and Azurite (used from slice 2)
+docker compose up -d                   # PostGIS and Azurite (not used by the code yet)
 ```
 
-Checks run in CI on every pull request: `npm run lint`, `npm run typecheck`, `npm test` and `npm run build`. Azure setup is in [`docs/setup.md`](docs/setup.md) and the infrastructure is described in [`infra/README.md`](infra/README.md).
+To run the production images exactly as on the VM, over plain HTTP:
+
+```bash
+docker build -f api/Dockerfile -t local/wehobby-api:dev .
+docker build -f web/Dockerfile -t local/wehobby-web:dev .
+
+cd deploy/vm
+IMAGE_PREFIX=local IMAGE_TAG=dev SITE_ADDRESS=:80 DATA_DIR=./.data \
+  POSTGRES_PASSWORD=local-only docker compose up -d   # http://localhost
+```
+
+Checks run in CI on every pull request: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and a build of both images with a smoke test of the VM stack.
 
 ## Privacy by design
 

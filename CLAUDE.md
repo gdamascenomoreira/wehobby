@@ -10,20 +10,27 @@ The full product spec lives in `docs/PRD.md`. Read it before starting any featur
 
 This repo is **public** and is also the owner's portfolio. Code quality, clear commits and a clean history matter.
 
+## Deployment targets
+
+The same app is deployed in several infrastructure scenarios (see `docs/README.md`). Keep the app independent of the hosting: configuration through environment variables, the same container images everywhere, and no code that assumes a specific Azure service.
+
+* **Current target: scenario 01 (IaaS).** One Ubuntu VM running Docker Compose: Caddy (HTTPS, serves the web build, proxies `/api`), the API, and PostgreSQL + PostGIS. Photos in Blob Storage through the VM's managed identity. The VM was built by hand; `docs/scenarios/01-iaas/portal-guide.md` is the source of truth for what exists.
+* **On hold until scenario 03 (Container Apps):** the Terraform in `infra/`, Container Apps, Static Web Apps and the `functions/` workspace. The conventions below still apply when that work starts.
+
 ## Stack
 
 * **Monorepo** with npm workspaces, TypeScript everywhere, strict mode, ES modules.
 * `web/`: React + Vite + TypeScript, PWA (vite-plugin-pwa), react-i18next with `pt` and `en` from day one. Mobile first CSS.
 * `api/`: Node.js + Fastify + TypeScript. Zod for validation. Drizzle ORM with drizzle-kit migrations. PostgreSQL + PostGIS.
-* `functions/`: Azure Functions (Node.js, TypeScript) for image processing, triggered by Event Grid on blob upload.
+* `functions/` (scenario 03): Azure Functions (Node.js, TypeScript) for image processing, triggered by Event Grid on blob upload. Keep the processing logic in a shared package so the VM can run it in a worker container.
 * `packages/shared/`: shared types and Zod schemas used by `web`, `api` and `functions`. Keep business rules here so a future React Native app can reuse them.
-* `infra/`: **Terraform** with the `azurerm` provider. Reusable modules in `infra/modules/`, one root configuration per environment in `infra/envs/dev/` and `infra/envs/prod/`.
+* `infra/` (scenario 03): **Terraform** with the `azurerm` provider. Reusable modules in `infra/modules/`, one root configuration per environment in `infra/envs/dev/` and `infra/envs/prod/`.
 * `.github/workflows/`: GitHub Actions. Azure login uses OIDC (`azure/login` with client id, tenant id, subscription id). Never use publish profiles or service principal secrets.
 * Container images go to **GitHub Container Registry** (ghcr.io), not Azure Container Registry, to keep costs at zero.
 
 ## Azure conventions
 
-* Region: set as a Terraform variable. **prod** must use an EU region (`westeurope`) for GDPR. **dev** is a lab with test data only and runs in `eastus2`, for cost and because the dev subscription cannot create resources in West Europe.
+* Region: North Europe (`northeurope`) for every environment (EU, for GDPR), set as a variable in infrastructure code. See `docs/conventions/region.md`.
 * Environments: `dev` and `prod`, each in its own resource group: `rg-wehobby-dev`, `rg-wehobby-prod`.
 * Naming: `<type>-wehobby-<env>` (for example `ca-wehobby-api-dev`, `kv-wehobby-dev`, `swa-wehobby-dev`). Storage accounts: `stwehobby<env>`.
 * Services talk to each other with **managed identities**. Secrets (VAPID keys, connection strings that cannot use identity) live in **Key Vault**.
@@ -41,6 +48,7 @@ This repo is **public** and is also the owner's portfolio. Code quality, clear c
 
 ## Local development
 
+* Development runs on the owner's laptop or in **GitHub Codespaces** (`.devcontainer/`). The lockfile must only reference `registry.npmjs.org`.
 * `docker compose up` runs PostGIS (`postgis/postgis`) and Azurite (Blob emulator).
 * Local settings go in `.env.local` files, which are git ignored. Commit `.env.example` files with placeholder values only.
 
@@ -80,7 +88,7 @@ This repo is **public** and is also the owner's portfolio. Code quality, clear c
 
 ## Build order (MVP slices)
 
-1. Monorepo scaffold, CI, minimal infrastructure, "hello world" deployed to dev
+1. Monorepo scaffold, CI, "hello world" running on the scenario 01 VM at `https://wehobby.app` (see `docs/prompts/m1-hello-world-vm.md`), then automated deploys to the VM
 2. Sign up and log in (Entra External ID)
 3. Pick hobbies and set location
 4. Post a photo (upload, processing, moderation)
