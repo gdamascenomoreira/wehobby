@@ -6,7 +6,10 @@ const ConfigSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
   APP_VERSION: z.string().min(1).default('local'),
-  /** Comma separated list of origins allowed by CORS, for example the web app URL. */
+  /**
+   * Comma separated list of origins allowed by CORS. Off when unset: on the VM
+   * the web app and the API share one origin behind Caddy.
+   */
   CORS_ORIGIN: z
     .string()
     .min(1)
@@ -16,7 +19,8 @@ const ConfigSchema = z.object({
         .map((origin) => origin.trim())
         .filter((origin) => origin.length > 0),
     )
-    .pipe(z.array(z.url()).min(1)),
+    .pipe(z.array(z.url()).min(1))
+    .optional(),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

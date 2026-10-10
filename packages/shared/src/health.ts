@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-/** Response body of `GET /health` on the API. */
+/** Response body of `GET /api/health` on the API. */
 export const HealthResponseSchema = z.object({
   status: z.literal('ok'),
   version: z.string().min(1),
