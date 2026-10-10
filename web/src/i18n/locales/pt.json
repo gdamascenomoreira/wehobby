@@ -3,6 +3,10 @@
     "name": "WeHobby",
     "tagline": "Partilha o dia a dia do teu hobby."
   },
+  "nav": {
+    "home": "Início do WeHobby",
+    "settings": "Definições"
+  },
   "language": {
     "label": "Idioma",
     "pt": "Português",
@@ -12,5 +16,59 @@
     "label": "Estado da API: {{status}}",
     "checking": "a verificar…",
     "unavailable": "indisponível"
+  },
+  "session": {
+    "loading": "A carregar…",
+    "error": "Não foi possível ligar ao WeHobby. Verifica a tua ligação e tenta de novo.",
+    "retry": "Tentar de novo"
+  },
+  "signIn": {
+    "intro": "Junta-te a quem gosta do mesmo hobby que tu: crochet, plantas e fotografia.",
+    "button": "Entrar ou criar conta",
+    "hint": "Com o teu email ou a tua conta Google."
+  },
+  "home": {
+    "welcome": "Olá, {{name}}!",
+    "comingSoon": "O teu feed de hobbies está a chegar."
+  },
+  "profile": {
+    "username": {
+      "label": "Nome de utilizador",
+      "hint": "3 a 30 caracteres: letras minúsculas, algarismos e _. Não o podes alterar depois.",
+      "invalid": "Usa 3 a 30 letras minúsculas, algarismos ou _. Alguns nomes estão reservados.",
+      "taken": "Este nome de utilizador já está ocupado.",
+      "available": "Este nome de utilizador está disponível."
+    },
+    "displayName": {
+      "label": "Nome a mostrar",
+      "invalid": "Escreve um nome com até 50 caracteres."
+    },
+    "bio": {
+      "label": "Bio (opcional)",
+      "invalid": "Usa até 160 caracteres."
+    },
+    "language": {
+      "label": "Idioma da app"
+    },
+    "age": {
+      "label": "Tenho 16 anos ou mais",
+      "invalid": "Tens de ter 16 anos ou mais para usar o WeHobby."
+    }
+  },
+  "onboarding": {
+    "title": "Cria o teu perfil",
+    "intro": "É assim que os outros entusiastas te vão ver.",
+    "submit": "Criar perfil"
+  },
+  "settings": {
+    "title": "Definições",
+    "account": "Sessão iniciada como @{{username}}",
+    "save": "Guardar alterações",
+    "saved": "Alterações guardadas.",
+    "signOut": "Terminar sessão"
+  },
+  "form": {
+    "saving": "A guardar…",
+    "error": "Algo correu mal. Tenta de novo."
   }
 }
