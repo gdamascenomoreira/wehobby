@@ -1226,3 +1226,224 @@ cp -rp backup-step9/compose.yaml backup-step9/Caddyfile backup-step9/site . && d
 > **Good to know:** with auto shutdown on, the site is down while the VM is off. When the VM starts again, Docker starts and `restart: unless-stopped` brings the three containers back, with no manual step.
 
 > **Good to know:** the `Strict-Transport-Security` header tells browsers to use HTTPS only. The whole `.app` domain is already on the browsers' HTTPS-only list, so this adds no new risk, but it means every `*.wehobby.app` name must always have a valid certificate.
+
+---
+
+## Step 12: Sign in with Entra External ID (slice 2)
+
+Adds accounts: sign up and sign in with email or Google, then a short onboarding to create the WeHobby profile. Sign in happens on Microsoft's hosted page (`<subdomain>.ciamlogin.com`); the API only checks the access tokens it receives.
+
+| Piece | Name | Where |
+|---|---|---|
+| External tenant | `WeHobby` (subdomain `wehobby` or the closest free name) | Microsoft Entra admin center |
+| API app registration | `wehobby-api`, scope `access_as_user` | External tenant |
+| Web app registration | `wehobby-web` (single page app) | External tenant |
+| Google OAuth client | `WeHobby External ID` | Google Cloud console |
+| User flow | `signupsignin` | External tenant |
+
+> **Good to know:** External ID is free for the first 50,000 monthly active users, so it adds no cost at MVP scale. The external tenant is a separate directory from the one that holds the Azure subscription: customer accounts never mix with admin accounts.
+
+### 12a. Create the external tenant
+
+1. Open the [Microsoft Entra admin center](https://entra.microsoft.com) with the account that owns the subscription
+2. **Entra ID** → **Overview** → **Manage tenants** → **Create**
+3. Tenant type: **External** → **Continue**
+4. **Basics**
+   - Tenant name: `WeHobby`
+   - Domain name: `wehobby` (if taken, try `wehobbyapp`). This becomes `<subdomain>.ciamlogin.com`
+   - Location: **Europe** (where customer data is stored, for GDPR)
+5. **Add a subscription**: your subscription, resource group `rg-wehobby-shared`
+6. **Review + create** → **Create** (takes a few minutes)
+7. Switch to the new tenant (**Settings** icon → **Directories + subscriptions**), open **Overview**, and write down:
+
+   | Value | Setting |
+   |---|---|
+   | Tenant ID | `AUTH_TENANT_ID` |
+   | Primary domain without `.onmicrosoft.com` (for example `wehobby`) | `AUTH_TENANT_SUBDOMAIN` |
+
+> **Good to know:** the tenant is linked to `rg-wehobby-shared` for the same reason as the DNS zone: user accounts must outlive the scenario resource groups.
+
+### 12b. Register the API
+
+In the external tenant:
+
+1. **Entra ID** → **App registrations** → **New registration**
+   - Name: `wehobby-api`
+   - Supported account types: **Accounts in this organizational directory only**
+   - Redirect URI: none
+2. **Register**. Write down the **Application (client) ID** → `AUTH_API_CLIENT_ID`
+3. **Expose an API** → **Application ID URI** → **Add** → keep `api://<client id>` → **Save**
+4. **Add a scope**
+
+   | Field | Value |
+   |---|---|
+   | Scope name | `access_as_user` |
+   | Who can consent | Admins only |
+   | Admin consent display name | Use WeHobby as the signed in user |
+   | Admin consent description | Lets the WeHobby web app call the WeHobby API for the signed in user |
+   | State | Enabled |
+
+5. **Manifest** → check that `requestedAccessTokenVersion` (under `api`) is `2`. If it is `null` or `1`, set it to `2` and **Save**
+
+> **Good to know:** the API rejects any token that is not a version 2 token issued by this tenant, for this API (`aud` is the API client id), with the `access_as_user` scope. Version 1 tokens have a different issuer, so they would all be rejected.
+
+### 12c. Register the web app
+
+1. **App registrations** → **New registration**
+   - Name: `wehobby-web`
+   - Supported account types: **Accounts in this organizational directory only**
+   - Redirect URI: platform **Single-page application (SPA)**, `https://wehobby.app/`
+2. **Register**. Write down the **Application (client) ID** → `AUTH_WEB_CLIENT_ID`
+3. **Authentication** → under **Single-page application**, add two more redirect URIs, then **Save**:
+   - `https://iaas.wehobby.app/`
+   - `http://localhost:5173/` (local development)
+4. **API permissions** → **Add a permission** → **APIs my organization uses** → `wehobby-api` → **Delegated permissions** → `access_as_user` → **Add permissions**
+5. **Grant admin consent for WeHobby** → **Yes**
+
+Expected: `access_as_user` and Microsoft Graph `User.Read` show **Granted for WeHobby**.
+
+> **Good to know:** a single page app has no client secret. It signs in with the authorization code flow and PKCE, and the redirect URIs are the security boundary: tokens are only ever sent to those exact addresses.
+
+### 12d. Google sign in
+
+In the [Google Cloud console](https://console.cloud.google.com):
+
+1. Create a project `WeHobby`
+2. **Google Auth Platform** → **Get started**
+   - App name: `WeHobby`, user support email: yours
+   - Audience: **External**
+   - Contact email: yours → **Create**
+3. **Branding** → **Authorized domains**: add `ciamlogin.com` and `microsoftonline.com` → **Save**
+4. **Data access** → **Add or remove scopes**: `openid`, `.../auth/userinfo.email` and `.../auth/userinfo.profile` → **Update** → **Save**
+5. **Clients** → **Create client**
+   - Application type: **Web application**, name `WeHobby External ID`
+   - Authorized JavaScript origins: `https://<subdomain>.ciamlogin.com`
+   - Authorized redirect URIs (replace `<tenant id>` and `<subdomain>`):
+     - `https://<tenant id>.ciamlogin.com/<tenant id>/federation/oauth2`
+     - `https://<subdomain>.ciamlogin.com/<tenant id>/federation/oauth2`
+     - `https://<subdomain>.ciamlogin.com/<subdomain>.onmicrosoft.com/federation/oauth2`
+   - **Create**, then copy the client ID and the client secret. The secret is only pasted into Entra in step 8; never save it anywhere else
+6. **Audience** → **Publish app** → **Confirm**, so any Google account can sign in, not only test users
+
+Back in the Entra admin center, in the external tenant:
+
+7. **Entra ID** → **External Identities** → **All identity providers** → **Built-in** → **Google** → **Configure**
+8. Paste the client ID and the client secret → **Save**
+
+### 12e. Sign up and sign in user flow
+
+1. **Entra ID** → **External Identities** → **User flows** → **New user flow**
+   - Name: `signupsignin`
+   - Identity providers: **Email with password** and **Google**
+   - User attributes: none (the app asks for its own profile at onboarding)
+2. **Create**
+3. Open the flow → **Applications** → **Add application** → `wehobby-web` → **Select**
+
+> **Good to know:** an app can be linked to only one user flow. Email one time passcodes are an alternative to passwords; they can be switched on later in the same flow, without code changes.
+
+### 12f. Update the VM
+
+Connect with Bastion (step 9a), then:
+
+#### 1. Add the sign in settings
+
+```bash
+cd /opt/wehobby
+```
+
+Run these four lines, with your values from 12a to 12c:
+
+```bash
+echo "AUTH_TENANT_ID=<tenant id>" >> .env
+echo "AUTH_TENANT_SUBDOMAIN=<subdomain>" >> .env
+echo "AUTH_API_CLIENT_ID=<wehobby-api client id>" >> .env
+echo "AUTH_WEB_CLIENT_ID=<wehobby-web client id>" >> .env
+```
+
+```bash
+grep '^AUTH_' .env
+```
+
+Expected: the four values. They identify the tenant and the apps and are not secrets, but `.env` stays private because it also holds the database password.
+
+#### 2. New compose file and images
+
+As in step 11c: download `deploy/vm/compose.yaml` at the merge commit of slice 2, and set `IMAGE_TAG` to the tag from that commit's **Images** run:
+
+```bash
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=sha-<tag>/' .env
+```
+
+```bash
+docker compose config --quiet && docker compose pull
+```
+
+#### 3. Create the tables
+
+```bash
+docker compose run --rm api node api/dist/migrate.js
+```
+
+Expected: `Migrations applied`. Running it again is safe: migrations that were already applied are skipped.
+
+#### 4. Restart
+
+```bash
+docker compose up -d
+```
+
+```bash
+docker compose ps
+```
+
+Expected: `caddy`, `api` and `db` running and `healthy`.
+
+### 12g. Test
+
+From your computer:
+
+```powershell
+curl.exe -s https://wehobby.app/api/config
+curl.exe -s -o NUL -w "%{http_code}" https://wehobby.app/api/me
+```
+
+Expected: your web client id and `https://<subdomain>.ciamlogin.com/`, then `401`.
+
+On your phone, at `https://wehobby.app`:
+
+1. **Sign in or create an account** → create an account with an email address → enter the code sent by email → choose a password
+2. Back on WeHobby, the onboarding form opens. Pick a username, a display name and a language, confirm 16+, then **Create profile**
+3. Expected: "Hello, <name>!" in the chosen language
+4. **Settings** → change the bio → **Save changes** → **Sign out**
+5. On your computer, sign in with the same account: the same profile appears (the PRD's "log back in on another device")
+6. Sign out, then sign in with **Google** with another account: onboarding starts again for the new person
+
+On the VM:
+
+```bash
+docker compose exec db psql -U wehobby -d wehobby -c "SELECT username, language, created_at FROM users;"
+```
+
+Expected: one row per profile you created.
+
+| Check | Result |
+|---|---|
+| External tenant created (Europe) | |
+| `/api/config` returns the web client id | |
+| `/api/me` without sign in returns 401 | |
+| Sign up with email | |
+| Sign in with Google | |
+| Onboarding creates the profile | |
+| Same profile on a second device | |
+
+#### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| The sign in page says the redirect URI does not match | The address is missing in `wehobby-web` → **Authentication** | Add it exactly, with the trailing `/` |
+| Back on WeHobby: "We could not reach WeHobby" | The API rejects the token | `docker compose logs api` shows `rejected access token` and a reason. Check the four `AUTH_` values, and that `requestedAccessTokenVersion` is `2` (12b) |
+| No Google button | Google is not in the user flow | 12e, identity providers |
+| Google says `redirect_uri_mismatch` | A redirect URI in the Google client is wrong | Compare with 12d step 5, letter by letter |
+| The browser console shows a CSP error for `ciamlogin.com` | `AUTH_TENANT_SUBDOMAIN` is wrong | Fix it in `.env`, then `docker compose up -d` |
+
+> **Good to know:** the API downloads the tenant's public signing keys and refreshes them when Entra rotates them. It never stores tokens or passwords: the only personal data it keeps is the profile in the `users` table, linked to the account by the Entra object id (`oid`).

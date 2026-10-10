@@ -79,31 +79,35 @@ docs/       Product requirements, conventions and deployment guides
 
 ## Local development
 
-Requires Node.js 24. Docker is optional for now.
+Requires Node.js 24 and Docker.
 
 ```bash
 npm install
-cp api/.env.example api/.env.local
+cp api/.env.example api/.env.local     # add the Entra ids from the portal guide, step 12
 cp web/.env.example web/.env.local
+
+docker compose up -d                   # PostGIS (and Azurite, not used yet)
+npm run db:migrate --workspace @wehobby/api
 
 npm run dev --workspace @wehobby/api   # http://localhost:3000/api/health
 npm run dev --workspace @wehobby/web   # http://localhost:5173 (proxies /api to the API)
-
-docker compose up -d                   # PostGIS and Azurite (not used by the code yet)
 ```
 
-To run the production images exactly as on the VM, over plain HTTP:
+`npm test` runs every test. The database tests need `TEST_DATABASE_URL` (already in `api/.env.example`, pointing at the local PostGIS); without it they are skipped. After changing `api/src/db/schema.ts`, run `npm run db:generate --workspace @wehobby/api` and commit the new migration in `api/drizzle/`.
+
+To run the production images exactly as on the VM, over plain HTTP (placeholder Entra ids are enough to start it; signing in needs the real ones):
 
 ```bash
 docker build -f api/Dockerfile -t local/wehobby-api:dev .
 docker build -f web/Dockerfile -t local/wehobby-web:dev .
 
 cd deploy/vm
-IMAGE_PREFIX=local IMAGE_TAG=dev SITE_ADDRESS=:80 DATA_DIR=./.data \
-  POSTGRES_PASSWORD=local-only docker compose up -d   # http://localhost
+cp .env.example .env    # then set IMAGE_PREFIX=local, IMAGE_TAG=dev, SITE_ADDRESS=:80, DATA_DIR=./.data
+docker compose up -d db && docker compose run --rm api node api/dist/migrate.js
+docker compose up -d    # http://localhost
 ```
 
-Checks run in CI on every pull request: `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, and a build of both images with a smoke test of the VM stack.
+Checks run in CI on every pull request: `npm run lint`, `npm run typecheck`, `npm test` (with a PostGIS service for the database tests), `npm run build`, and a build of both images with a smoke test of the VM stack.
 
 ## Privacy by design
 

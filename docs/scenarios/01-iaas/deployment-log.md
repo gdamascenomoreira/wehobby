@@ -24,6 +24,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | 9 | VM configuration (disk, Docker, placeholder site) | ✅ |
 | 10 | Backups | ⏭️ Skipped (decision) |
 | 11 | App deployment (milestone 1) | ⬜ |
+| 12 | Sign in with Entra External ID (slice 2) | ⬜ |
 
 ---
 
@@ -151,6 +152,22 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Exposed ports | 80 and 443 (Caddy only) | API and database stay on the Compose network |
 | Site names | `wehobby.app`, `www.wehobby.app` (redirects to the apex), `iaas.wehobby.app` | |
 | Deploys | Manual through Bastion | Automated deploys come in milestone 2 |
+
+**Notes / issues:**
+
+---
+
+## 12. Sign in (Entra External ID)
+
+| Setting | Value | Why |
+|---|---|---|
+| Tenant | External tenant `WeHobby`, location Europe, linked to `rg-wehobby-shared` | Customer accounts separate from admin accounts; data in the EU; outlives the scenarios |
+| App registrations | `wehobby-api` (scope `access_as_user`, v2 tokens) and `wehobby-web` (SPA) | The API only accepts tokens issued for it |
+| Redirect URIs | `https://wehobby.app/`, `https://iaas.wehobby.app/`, `http://localhost:5173/` | |
+| Identity providers | Email with password, Google | PRD: email and Google sign in |
+| User flow | `signupsignin`, no extra attributes | The profile is collected by the app at onboarding |
+| VM settings | `AUTH_TENANT_ID`, `AUTH_TENANT_SUBDOMAIN`, `AUTH_API_CLIENT_ID`, `AUTH_WEB_CLIENT_ID` in `/opt/wehobby/.env` | Not secrets; the same images run in every environment |
+| Database | `users` table, created by `node api/dist/migrate.js` | Migrations ship in the API image |
 
 **Notes / issues:**
 

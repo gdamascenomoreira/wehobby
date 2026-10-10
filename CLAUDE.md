@@ -88,7 +88,7 @@ The same app is deployed in several infrastructure scenarios (see `docs/README.m
 
 ## Build order (MVP slices)
 
-1. Monorepo scaffold, CI, "hello world" running on the scenario 01 VM at `https://wehobby.app` (see `docs/prompts/m1-hello-world-vm.md`), then automated deploys to the VM
+1. Monorepo scaffold, CI, "hello world" running on the scenario 01 VM at `https://wehobby.app` (see `docs/prompts/m1-hello-world-vm.md`). Deploys to the VM stay manual, documented in the portal guide
 2. Sign up and log in (Entra External ID)
 3. Pick hobbies and set location
 4. Post a photo (upload, processing, moderation)
