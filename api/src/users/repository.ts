@@ -1,4 +1,4 @@
-import type { CreateProfile, Profile, UpdateProfile } from '@wehobby/shared';
+import type { CreateProfile, Profile, UpdateProfile, UserHobby } from '@wehobby/shared';
 import { eq, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
 import { users, type UserRow } from '../db/schema.js';
@@ -24,13 +24,14 @@ function uniqueConstraintOf(error: unknown): string | undefined {
   return undefined;
 }
 
-export function toProfile(row: UserRow): Profile {
+export function toProfile(row: UserRow, hobbies: UserHobby[]): Profile {
   return {
     id: row.id,
     username: row.username,
     displayName: row.displayName,
     bio: row.bio,
     language: row.language,
+    hobbies,
     createdAt: row.createdAt.toISOString(),
   };
 }

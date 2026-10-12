@@ -1,7 +1,13 @@
-import { CreateProfileSchema, UpdateProfileSchema, type Profile } from '@wehobby/shared';
+import {
+  CreateProfileSchema,
+  SetUserHobbiesSchema,
+  UpdateProfileSchema,
+  type Profile,
+} from '@wehobby/shared';
 import type { FastifyPluginCallback } from 'fastify';
 import { authOf, requireAuth, type TokenVerifier } from '../auth.js';
 import { parseOrReply, sendError } from '../errors.js';
+import { UnknownHobbyError, type HobbyRepository } from '../hobbies/repository.js';
 import {
   ProfileExistsError,
   toProfile,
@@ -12,6 +18,7 @@ import { WRITE_RATE_LIMIT } from './rate-limits.js';
 
 export interface MeRouteOptions {
   users: UserRepository;
+  hobbies: HobbyRepository;
   verifyToken: TokenVerifier;
 }
 
@@ -22,7 +29,7 @@ export interface MeRouteOptions {
  */
 export const meRoute: FastifyPluginCallback<MeRouteOptions> = (
   app,
-  { users, verifyToken },
+  { users, hobbies, verifyToken },
   done,
 ) => {
   app.addHook('onRequest', requireAuth(verifyToken));
@@ -32,7 +39,7 @@ export const meRoute: FastifyPluginCallback<MeRouteOptions> = (
     if (!row) {
       return sendError(reply, 'not_found', 'No profile yet');
     }
-    const body: Profile = toProfile(row);
+    const body: Profile = toProfile(row, await hobbies.forUser(row.id));
     return reply.send(body);
   });
 
@@ -42,7 +49,7 @@ export const meRoute: FastifyPluginCallback<MeRouteOptions> = (
 
     try {
       const row = await users.create(authOf(request).oid, input);
-      const body: Profile = toProfile(row);
+      const body: Profile = toProfile(row, []);
       return await reply.code(201).send(body);
     } catch (error) {
       if (error instanceof ProfileExistsError) {
@@ -63,8 +70,27 @@ export const meRoute: FastifyPluginCallback<MeRouteOptions> = (
     if (!row) {
       return sendError(reply, 'not_found', 'No profile yet');
     }
-    const body: Profile = toProfile(row);
+    const body: Profile = toProfile(row, await hobbies.forUser(row.id));
     return reply.send(body);
+  });
+
+  app.put('/me/hobbies', { config: { rateLimit: WRITE_RATE_LIMIT } }, async (request, reply) => {
+    const input = parseOrReply(SetUserHobbiesSchema, request.body, reply);
+    if (!input) return reply;
+
+    const row = await users.findByOid(authOf(request).oid);
+    if (!row) {
+      return sendError(reply, 'not_found', 'No profile yet');
+    }
+    try {
+      const body: Profile = toProfile(row, await hobbies.setForUser(row.id, input));
+      return await reply.send(body);
+    } catch (error) {
+      if (error instanceof UnknownHobbyError) {
+        return sendError(reply, 'validation', error.message);
+      }
+      throw error;
+    }
   });
   done();
 };

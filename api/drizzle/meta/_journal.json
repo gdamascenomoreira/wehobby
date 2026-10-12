@@ -8,6 +8,20 @@
       "when": 1791647076391,
       "tag": "0000_init_users",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791805922808,
+      "tag": "0001_hobbies",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791805925112,
+      "tag": "0002_seed_hobbies",
+      "breakpoints": true
     }
   ]
 }
