@@ -7,6 +7,20 @@ export {
   type ApiErrorCode,
   type PublicConfig,
 } from './api.js';
+export {
+  HobbyCatalogSchema,
+  HobbySchema,
+  HobbySlugSchema,
+  HobbyTypeSchema,
+  MAX_TYPES_PER_HOBBY,
+  SetUserHobbiesSchema,
+  UserHobbySchema,
+  type Hobby,
+  type HobbyCatalog,
+  type HobbyType,
+  type SetUserHobbies,
+  type UserHobby,
+} from './hobby.js';
 export { HealthResponseSchema, type HealthResponse } from './health.js';
 export {
   BIO_MAX_LENGTH,

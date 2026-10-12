@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UserHobbySchema } from './hobby.js';
 
 export const LANGUAGES = ['pt', 'en'] as const;
 export const LanguageSchema = z.enum(LANGUAGES);
@@ -67,6 +68,8 @@ export const ProfileSchema = z.object({
   displayName: z.string(),
   bio: z.string(),
   language: LanguageSchema,
+  /** Empty until the user picks hobbies at onboarding. */
+  hobbies: z.array(UserHobbySchema),
   createdAt: z.iso.datetime(),
 });
 export type Profile = z.infer<typeof ProfileSchema>;
