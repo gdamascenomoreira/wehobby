@@ -4,7 +4,7 @@ Step by step guide for building scenario 01 manually in the Azure portal. Settin
 
 > Before adding screenshots, hide subscription ID, tenant ID, email addresses and public IPs.
 
-**Date built:*2026 October*
+**Date built: *2026 October*
 ---
 
 ## Step 1: Resource group
@@ -995,8 +995,6 @@ Expected: `202`
 > **My notes:**
 > [Configure managed identities on Azure virtual machines (VMs)](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/how-to-configure-managed-identities?pivots=qs-configure-portal-windows-vm)
 
----
-
 ----
 
 ## Step 10: Backups (not implemented)
@@ -1017,6 +1015,8 @@ Expected: `202`
 | Disk | Incremental snapshots of the data disk, or Azure Backup for the whole VM |
 | Restore test | Regular restore into a separate database to prove backups work |
 
+Result: ⏭️ Not implemented by design
+
 > **Good to know:** on a VM, backups are entirely your responsibility. In Scenario 02, Azure Database for PostgreSQL Flexible Server includes automated backups (7 days retention by default), with backup storage up to the provisioned storage size at no extra cost.
 
 > **My notes:**
@@ -1024,151 +1024,1176 @@ Expected: `202`
 >[An overview of Azure VM backup](https://learn.microsoft.com/en-us/azure/backup/blob-backup-overview?tabs=operational-backup)
 ---
 
-## Step 11: Deploy the app (milestone 1)
+## Step 11: Build the initial WeHobby application (Milestone 1)
 
-Replaces the placeholder page from step 9d with the real app: the web app and the API, behind Caddy, at `https://wehobby.app`. The database container and the data on `/datadisk` are kept.
+Steps 1 to 10 created and validated the infrastructure required to host WeHobby.
 
-| Container | Image | Ports | Data |
-|---|---|---|---|
-| `caddy` | `ghcr.io/gdamascenomoreira/wehobby-web` (Caddy + web build) | 80, 443 (public) | `/datadisk/caddy` |
-| `api` | `ghcr.io/gdamascenomoreira/wehobby-api` | 3000 (Compose network only) | |
-| `db` | `postgis/postgis:17-3.5` (unchanged) | 5432 (Compose network only) | `/datadisk/postgres` |
+At this point the Azure VM, networking, DNS, storage, managed identity, Docker, Caddy and PostgreSQL/PostGIS were working, but the VM was still serving the placeholder page created in step 9d.
 
-The compose file comes from the repo (`deploy/vm/compose.yaml`). The version that runs is set by `IMAGE_TAG` in `/opt/wehobby/.env`.
+Step 11 starts the application-development phase.
 
-### 11a. DNS for the apex and www
+The goal of Milestone 1 is deliberately small:
 
-Do this **before** step 11c. Caddy asks Let's Encrypt for the new names as soon as it starts, and the validation fails if they do not point at the VM yet.
+> Build the first deployable version of WeHobby and prove that the frontend and API can run on the Scenario 01 VM at `https://wehobby.app`.
 
-1. Open the DNS zone `wehobby.app` (in `rg-wehobby-shared`) → **Recordsets** → **Add**
+No real product features are implemented in this milestone.
 
-   | Field | Value |
-   |---|---|
-   | Name | `@` |
-   | Type | A |
-   | Alias record set | Yes |
-   | Alias type | Azure resource |
-   | Azure resource | `pip-vm-wehobby-iaas-dev-01` |
-   | TTL | 1 hour |
+The objective is to validate the complete path:
 
-2. **Add**, then repeat with Name `www`
-3. Check from your computer:
+```text
+Source code
+    |
+    v
+Build and test
+    |
+    v
+Docker images
+    |
+    v
+GitHub Container Registry
+    |
+    v
+Azure VM
+    |
+    v
+Caddy
+    |
+    +----> React web app
+    |
+    +----> /api/* ----> Fastify API
+```
+
+The application was developed with Claude Code as an AI pair-programming tool.
+
+---
+
+### 11a. Start application development with Claude Code
+
+From the root of the `wehobby` repository, Claude Code was asked to first understand the project and propose an implementation plan before changing any code.
+
+Initial prompt:
+
+```text
+Read CLAUDE.md and explore the current state of this repo.
+
+I have already deployed the Azure VM and the IaaS infrastructure for scenario 1. Now I want to start building the app itself and deploy it to that VM.
+
+First, do not write code yet. Give me:
+1. A short summary of what already exists in the repo
+2. A recommended tech stack for the MVP (frontend, backend, database, auth, image storage) that fits a single low cost Linux VM, is easy for one person to maintain, and could later move to PaaS (App Service, Container Apps) for the other infra scenarios. Give me pros and cons and your recommendation
+3. A step by step plan to build the MVP in small milestones, where milestone 1 is a "hello world" version of the app running on the VM and reachable at wehobby.app over HTTPS
+4. A list of anything you need from me (VM details, credentials, decisions)
+
+Wait for my approval before starting milestone 1.
+```
+
+The intention was to use Claude Code as an engineering assistant rather than immediately generate code.
+
+The process was:
+
+```text
+Understand repository
+        |
+        v
+Understand existing infrastructure
+        |
+        v
+Review application architecture
+        |
+        v
+Identify inconsistencies
+        |
+        v
+Recommend implementation
+        |
+        v
+Review and approve
+        |
+        v
+Implement Milestone 1
+```
+
+---
+
+### 11b. Review the existing repository
+
+Claude Code inspected:
+
+- `CLAUDE.md`
+- `README.md`
+- the product requirements
+- Scenario 01 documentation
+- the deployment log
+- the portal guide
+- application source code
+- infrastructure code
+- GitHub Actions workflows
+- existing branches and Git history
+
+The repository already contained the initial application structure:
+
+```text
+wehobby/
+├── web/
+│   └── React + TypeScript + Vite PWA
+│
+├── api/
+│   └── Node.js + TypeScript + Fastify
+│
+├── packages/
+│   └── shared/
+│       └── Shared TypeScript types and validation
+│
+├── functions/
+│   └── Azure Functions code for later scenarios
+│
+├── infra/
+│   └── Terraform for later infrastructure scenarios
+│
+└── docs/
+    └── Product and infrastructure documentation
+```
+
+The existing application already contained some useful foundations:
+
+- React frontend
+- TypeScript
+- PWA support
+- Portuguese and English internationalization
+- language picker
+- API health/status component
+- Fastify API
+- Zod validation
+- shared TypeScript package
+
+Claude Code also compared the repository assumptions with the infrastructure that had actually been deployed.
+
+Some configuration needed to be aligned with Scenario 01, including:
+
+- North Europe as the actual Azure region
+- PostgreSQL/PostGIS `17-3.5` as the version running on the VM
+- Scenario 01 as the current deployment target
+- later PaaS/Terraform infrastructure kept separate from the current VM implementation
+
+---
+
+### 11c. Confirm the application architecture
+
+The decision was to keep the application independent of the infrastructure scenario.
+
+The same application should later be able to move from the Scenario 01 VM to services such as App Service or Azure Container Apps without requiring a rewrite of the application.
+
+The main portability rules are:
+
+- configuration comes from environment variables
+- application code does not assume a specific Azure hosting service
+- application components are packaged as containers
+- the same application images can be used by different infrastructure scenarios
+- persistent data is kept outside the replaceable application containers
+
+For Scenario 01, the application architecture is:
+
+```text
+                         Internet
+                            |
+                            | HTTPS
+                            v
+                     +-------------+
+                     |    Caddy    |
+                     |             |
+                     | React PWA   |
+                     +------+------+
+                            |
+                         /api/*
+                            |
+                            v
+                     +-------------+
+                     | Fastify API |
+                     | Node.js     |
+                     +------+------+
+                            |
+                            v
+                     +-------------+
+                     | PostgreSQL  |
+                     | + PostGIS   |
+                     +------+------+
+                            |
+                            v
+                  /datadisk/postgres
+```
+
+Caddy is the only component exposed to the internet.
+
+The API and PostgreSQL remain inside the Docker Compose network.
+
+---
+
+### 11d. Define Milestone 1
+
+Milestone 1 deliberately does not implement the actual social-network features yet.
+
+The purpose is to prove that the complete application delivery architecture works.
+
+Milestone 1 is complete when:
+
+- the React application builds
+- the API builds
+- both components pass their tests
+- Docker images can be created
+- the application can run using Docker Compose
+- Caddy can serve the web application
+- Caddy can forward `/api/*` requests to the API
+- the application can eventually be reached at `https://wehobby.app`
+- the frontend can successfully call the backend health endpoint
+
+The expected result after deployment is:
+
+```text
+https://wehobby.app
+        |
+        v
+   React application
+        |
+        | /api/health
+        v
+    Fastify API
+        |
+        v
+{"status":"ok","version":"sha-..."}
+```
+
+Database application functionality, authentication and product features remain outside Milestone 1.
+
+---
+
+### 11e. Prepare the frontend
+
+The frontend stack remains:
+
+```text
+React
+TypeScript
+Vite
+PWA
+react-i18next
+```
+
+The first version contains:
+
+- WeHobby name
+- a simple mobile-first page
+- Portuguese and English support
+- language picker
+- API status
+
+An important architectural change was how the browser accesses the API.
+
+The frontend uses a relative address:
+
+```text
+/api/health
+```
+
+instead of needing a separate API hostname.
+
+In production:
+
+```text
+Browser
+   |
+   | https://wehobby.app/api/health
+   v
+Caddy
+   |
+   | Docker network
+   v
+api:3000
+```
+
+For local development, the Vite development server proxies `/api` to the local API.
+
+This means the browser sees the frontend and backend as one origin.
+
+---
+
+### 11f. Prepare the API
+
+The backend stack remains:
+
+```text
+Node.js
+TypeScript
+Fastify
+Zod
+```
+
+API routes were organized underneath:
+
+```text
+/api
+```
+
+The Milestone 1 health endpoint is:
+
+```text
+GET /api/health
+```
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "version": "sha-e8d2d8a"
+}
+```
+
+This endpoint proves that:
+
+- the API container is running
+- Caddy can communicate with the API
+- routing between the frontend edge and API works
+- the deployed application version can be identified
+
+The API container does not expose port `3000` on the VM host.
+
+Only other Docker containers can reach that port.
+
+---
+
+### 11g. Create the web edge image
+
+A production image was created for the frontend:
+
+```text
+ghcr.io/gdamascenomoreira/wehobby-web
+```
+
+This image contains two things:
+
+```text
+wehobby-web
+├── built React application
+└── Caddy
+```
+
+Caddy:
+
+- terminates HTTPS
+- serves the React application
+- obtains and renews certificates
+- proxies `/api/*` to the API container
+- keeps `/health` available
+- redirects `www.wehobby.app` to `wehobby.app`
+- serves `iaas.wehobby.app`
+- adds HTTP security headers
+- compresses responses
+- applies caching rules for static assets
+
+This replaces the manually created placeholder site from step 9d.
+
+
+Notes:
+[Caddy GitHub page](https://github.com/caddyserver/caddy)
+[Caddy Documentation](https://caddyserver.com/docs/)
+[Caddy Getting Started](https://caddyserver.com/docs/getting-started)
+---
+
+### 11h. Create the API image
+
+The API is packaged separately as:
+
+```text
+ghcr.io/gdamascenomoreira/wehobby-api
+```
+
+The API image contains the built Node.js/Fastify application.
+
+The separation provides:
+
+```text
+wehobby-web
+    |
+    +---- Caddy
+    +---- React build
+
+wehobby-api
+    |
+    +---- Node.js
+    +---- Fastify
+```
+
+The two components can therefore be upgraded independently while still being versioned from the same Git commit.
+
+---
+
+### 11i. Create the VM Docker Compose definition
+
+A deployment-specific Compose file was added to the repository:
+
+```text
+deploy/vm/compose.yaml
+```
+
+The VM will run three containers:
+
+| Container | Purpose | Host ports |
+|---|---|---|
+| `caddy` | HTTPS, React frontend, reverse proxy | 80, 443 |
+| `api` | Node.js/Fastify API | None |
+| `db` | PostgreSQL + PostGIS | None |
+
+The important design decision is that persistent data remains outside the replaceable containers.
+
+```text
+Application containers
+    |
+    | replaceable
+    v
+
+wehobby-web
+wehobby-api
+
+
+Persistent Azure data disk
+    |
+    +---- /datadisk/postgres
+    |
+    +---- /datadisk/caddy
+```
+
+Therefore updating the application does not delete the PostgreSQL data or the Caddy certificate data.
+
+---
+
+### 11j. Add CI validation
+
+GitHub Actions CI was updated so that changes are checked before deployment.
+
+The CI validates:
+
+```text
+Source code
+   |
+   +---- formatting
+   |
+   +---- lint
+   |
+   +---- type checking
+   |
+   +---- tests
+   |
+   +---- application build
+   |
+   +---- API image build
+   |
+   +---- Web image build
+   |
+   +---- Docker Compose smoke test
+```
+
+The smoke test validates important properties of the production architecture, including:
+
+- `/health`
+- `/api/health`
+- frontend SPA fallback
+- HTTP security headers
+- API not directly exposed on the host
+
+This provides a test of the container architecture before the images are deployed to the VM.
+
+---
+
+### 11k. Publish versioned images
+
+A GitHub Actions workflow named `Images` was added.
+
+When Milestone 1 was merged to `main`, the workflow built and pushed:
+
+```text
+ghcr.io/gdamascenomoreira/wehobby-web
+ghcr.io/gdamascenomoreira/wehobby-api
+```
+
+Images are tagged using the Git commit.
+
+For this Milestone 1 deployment:
+
+```text
+IMAGE_TAG=sha-e8d2d8a
+```
+
+Therefore the application artifacts are:
+
+```text
+ghcr.io/gdamascenomoreira/wehobby-web:sha-e8d2d8a
+ghcr.io/gdamascenomoreira/wehobby-api:sha-e8d2d8a
+```
+![API Image Summary from GitHub Actions](images/apiimagesummarygithub.png)
+
+The relationship is:
+
+```text
+Git commit
+   |
+   v
+e8d2d8a
+   |
+   v
+GitHub Actions
+   |
+   +---- wehobby-web:sha-e8d2d8a
+   |
+   +---- wehobby-api:sha-e8d2d8a
+```
+
+> **Good to know:** the image tag is not confidential. It identifies the application version and can be documented in the repository. Secrets such as the PostgreSQL password, access tokens, storage keys or SSH private keys must never be committed.
+
+---
+
+### 11l. Deployment strategy
+
+The application deployment to Scenario 01 remains manual.
+
+GitHub Actions is responsible for:
+
+```text
+Build
+Test
+Create images
+Publish images
+```
+
+The VM deployment is performed manually through Azure Bastion.
+
+```text
+GitHub
+   |
+   | build and publish
+   v
+GHCR
+   |
+   | manual deployment
+   v
+Azure VM
+```
+
+Automated VM deployment was intentionally not added.
+
+The focus after Milestone 1 is application development rather than deployment automation.
+
+When later features require something to change on the VM, such as:
+
+- new environment variables
+- database migrations
+- additional containers
+
+the required commands are documented and run manually.
+
+---
+
+### Result
+
+| Check | Result |
+|---|---|
+| Existing repository reviewed | ✅ |
+| Scenario 01 architecture confirmed | ✅ |
+| Frontend prepared | ✅ |
+| API prepared | ✅ |
+| `/api/health` implemented | ✅ |
+| `wehobby-web` image created | ✅ |
+| `wehobby-api` image created | ✅ |
+| VM Compose definition created | ✅ |
+| CI validation added | ✅ |
+| Milestone 1 merged | ✅ |
+| Images workflow completed | ✅ |
+| Image tag | `sha-e8d2d8a` |
+| Application deployed to VM | ⬜ Step 12 |
+
+---
+
+## Step 12: Deploy Milestone 1 to Scenario 01
+
+Step 11 built and packaged the initial application.
+
+Step 12 deploys those artifacts to the Scenario 01 VM and replaces the placeholder site from step 9d.
+
+The target architecture after this step is:
+
+```text
+                         Internet
+                            |
+                   wehobby.app
+                   www.wehobby.app
+                   iaas.wehobby.app
+                            |
+                            v
+                     VM Public IP
+                            |
+                            v
+                 +--------------------+
+                 |       Caddy        |
+                 | + React web build  |
+                 | ports 80 / 443     |
+                 +---------+----------+
+                           |
+                        /api/*
+                           |
+                           v
+                 +--------------------+
+                 |        API         |
+                 |     Fastify        |
+                 |  port 3000 internal|
+                 +---------+----------+
+                           |
+                           v
+                 +--------------------+
+                 | PostgreSQL/PostGIS |
+                 | 5432 internal      |
+                 +---------+----------+
+                           |
+                           v
+                 /datadisk/postgres
+```
+
+---
+
+### 12a. DNS for the application
+
+Before starting the new Caddy container, the application DNS names must resolve to the Scenario 01 VM.
+
+Azure DNS contains A alias records for:
+
+```text
+iaas.wehobby.app
+wehobby.app
+www.wehobby.app
+```
+
+All records point to:
+
+```text
+pip-vm-wehobby-iaas-dev-01
+```
+
+
+![DNS Records updated](images/dnsrecordsupdated.png)
+
+The resulting DNS structure is:
+
+```text
+iaas.wehobby.app ───┐
+                    |
+wehobby.app ─────────┼──> VM public IP
+                    |
+www.wehobby.app ─────┘
+```
+
+Validation from the computer:
 
 ```powershell
 nslookup wehobby.app
 nslookup www.wehobby.app
 ```
 
-Expected: both return the VM public IP, the same as `iaas.wehobby.app`.
+Result:
 
-> **Good to know:** the apex (`wehobby.app` itself) cannot be a CNAME, which is why both records are A alias records pointing at the public IP resource. When the site moves to another scenario, only these two records change.
+![Nslookup results](images/nslookupupdated.png)
 
-### 11b. Publish the images
+Both names resolve to the same VM public IP.
 
-1. Merge the milestone 1 pull request. The **Images** workflow (GitHub → **Actions** → **Images**) builds and pushes both images
-2. Open the finished run → **Summary**, and write down the tag, for example `sha-1a2b3c4`
-3. Make both packages public, once (new packages on ghcr.io are private):
-   - GitHub → your profile → **Packages** → `wehobby-web` → **Package settings** → **Change visibility** → **Public**
-   - Same for `wehobby-api`
+| Check | Result |
+|---|---|
+| `wehobby.app` resolves to VM | ✅ |
+| `www.wehobby.app` resolves to VM | ✅ |
+| `iaas.wehobby.app` still resolves to VM | ✅ |
 
-> **Good to know:** public packages let the VM pull without storing a GitHub token on it. The images contain only the built app, no secrets.
+> **Good to know:** the `@` A record represents the apex `wehobby.app`. The existing `@` NS and SOA records do not give `wehobby.app` an IP address, so a separate `@` A alias record is required.
 
-### 11c. Switch the VM to the app
+---
 
-Connect with Bastion (step 9a), then:
+### 12b. Publish the application images
 
-#### 1. Back up the step 9d files
+After the Milestone 1 pull request was merged, GitHub Actions ran the `Images` workflow.
+
+The successful workflow created the deployment tag:
+
+```text
+sha-e8d2d8a
+```
+
+The corresponding images are:
+
+```text
+ghcr.io/gdamascenomoreira/wehobby-web:sha-e8d2d8a
+ghcr.io/gdamascenomoreira/wehobby-api:sha-e8d2d8a
+```
+
+Both GitHub Container Registry packages were verified under:
+
+```text
+GitHub profile
+└── Packages
+    ├── wehobby-api
+    └── wehobby-web
+```
+
+Both packages were changed to:
+
+```text
+Visibility: Public
+```
+
+![Changing package visibility in GitHub](images/changepackagevisibility.png)
+
+This allows the VM to download the images without storing a GitHub token.
+
+| Check | Result |
+|---|---|
+| `wehobby-api` package exists | ✅ |
+| `wehobby-web` package exists | ✅ |
+| `wehobby-api` visibility | Public ✅ |
+| `wehobby-web` visibility | Public ✅ |
+| Image tag | `sha-e8d2d8a` |
+
+> **Good to know:** public container images do not mean the application secrets are public. Secrets such as `POSTGRES_PASSWORD` remain in `/opt/wehobby/.env` on the VM and are not built into the images.
+
+---
+
+### 12c. Switch the VM to the application
+
+Connect to `vm-wehobby-iaas-dev-01` using Azure Bastion Developer.
+
+The objective of this step is to replace:
+
+```text
+Step 9
+generic caddy:2
++ manually created site/index.html
+```
+
+with:
+
+```text
+wehobby-web:sha-e8d2d8a
+wehobby-api:sha-e8d2d8a
+existing PostgreSQL database
+```
+
+#### 1. Open the WeHobby directory
 
 ```bash
 cd /opt/wehobby
 ```
 
-```bash
-mkdir -p backup-step9 && cp -rp compose.yaml Caddyfile site .env backup-step9/
-```
-
-#### 2. Download the compose file
-
-Use the full commit SHA of the merge commit (GitHub → **Commits** → copy the full SHA), so the file matches the images:
+Check the current files:
 
 ```bash
-COMMIT=<full commit sha>
+ls -la
 ```
+
+The existing Step 9 configuration should include files such as:
+
+```text
+.env
+compose.yaml
+Caddyfile
+site/
+```
+
+Output:
+
+![Opening We Hobby directory](images/openwehobbydirectory.png)
+
+---
+
+#### 2. Back up the Step 9 configuration
+
+Create a backup before changing the running configuration:
+
+```bash
+mkdir -p backup-step9
+```
+
+Copy the existing files:
+
+```bash
+cp -rp compose.yaml Caddyfile site .env backup-step9/
+```
+
+Verify:
+
+```bash
+ls -la backup-step9
+```
+
+Expected:
+
+```text
+compose.yaml
+Caddyfile
+site/
+.env
+```
+Output:
+
+![Backup done](images/backupstep9.png)
+
+The backup provides a path back to the Step 9 placeholder configuration if necessary.
+
+---
+
+#### 3. Get the full merge commit SHA
+
+The container tag uses the short SHA:
+
+```text
+sha-e8d2d8a
+```
+
+The deployment Compose file should be downloaded from the corresponding full Git commit so the Compose definition and application images represent the same application version.
+
+In GitHub:
+
+```text
+wehobby
+└── Commits
+    └── Milestone 1 merge commit
+```
+
+Copy the full SHA.
+
+On the VM:
+
+```bash
+COMMIT=ghcr.io/gdamascenomoreira/wehobby-api:sha-e8d2d8a
+```
+
+Do not include `<` or `>` when entering the real value.
+
+
+#### 4. Download the production Compose file
+
+Run:
 
 ```bash
 curl -fsSL -o compose.yaml "https://raw.githubusercontent.com/gdamascenomoreira/wehobby/$COMMIT/deploy/vm/compose.yaml"
 ```
 
+Verify the beginning of the file:
+
 ```bash
 head -5 compose.yaml
 ```
 
-Expected: the comment `# WeHobby on the scenario 01 VM.`
+Expected:
 
-#### 3. Set the image tag
-
-`.env` already holds `POSTGRES_PASSWORD` from step 9d. Keep it, and add the tag from 11b:
-
-```bash
-echo "IMAGE_TAG=sha-1a2b3c4" >> .env
+```text
+# WeHobby on the scenario 01 VM.
 ```
 
-```bash
-grep -c '^POSTGRES_PASSWORD=' .env; grep '^IMAGE_TAG=' .env
+Output:
+![Results of the head cmdlet](images/commitcurl.png)
+
+Do not continue if the downloaded file is not the expected Scenario 01 Compose file.
+
+---
+
+#### 5. Add the application image tag
+
+The existing `/opt/wehobby/.env` already contains:
+
+```text
+POSTGRES_PASSWORD=...
 ```
 
-Expected: `1` and your tag. (Do not `cat .env`: it would print the password.)
+Keep this value.
 
-#### 4. Validate, pull and start
+Do not recreate the `.env` file.
+
+Add the application version:
+
+```bash
+echo "IMAGE_TAG=sha-e8d2d8a" >> .env
+```
+
+Safely verify the required entries without displaying the database password:
+
+```bash
+grep -c '^POSTGRES_PASSWORD=' .env
+```
+
+Expected:
+
+```text
+1
+```
+
+Then:
+
+```bash
+grep '^IMAGE_TAG=' .env
+```
+
+Expected:
+
+```text
+IMAGE_TAG=sha-e8d2d8a
+```
+
+Output:
+
+![Checking the password and image tag](images/step5output.png)
+
+Do not run:
+
+```bash
+cat .env
+```
+
+because it would display the PostgreSQL password.
+
+---
+
+#### 6. Validate Docker Compose
+
+Before changing the running containers:
 
 ```bash
 docker compose config --quiet
 ```
 
+Expected:
+
+```text
+no output
+```
+
+No output means Docker Compose successfully parsed the configuration.
+
+If an error appears, fix the configuration before continuing.
+
+---
+
+#### 7. Download the application images
+
+Run:
+
 ```bash
 docker compose pull
 ```
+
+This downloads the application containers required by the new Compose configuration.
+
+Conceptually:
+
+```text
+GitHub Container Registry
+          |
+          | docker compose pull
+          v
+Azure VM
+          |
+          +---- wehobby-web:sha-e8d2d8a
+          |
+          +---- wehobby-api:sha-e8d2d8a
+```
+
+---
+
+#### 8. Start the new application
+
+Run:
 
 ```bash
 docker compose up -d
 ```
 
+Docker Compose compares the desired configuration with the currently running containers and updates the stack.
+
+Check:
+
 ```bash
 docker compose ps
 ```
 
-Expected: `caddy`, `api` and `db` running and `healthy`. `db` is not recreated because its settings did not change.
+The expected services are:
+
+```text
+caddy
+api
+db
+```
+
+Output:
+
+![Results for downloading and starting the new app](images/downloadandstartnewapp.png)
+
+The database continues using the existing data under:
+
+```text
+/datadisk/postgres
+```
+
+The deployment therefore replaces the application containers without intentionally deleting the database files.
+
+---
+
+#### 9. Check Caddy certificates
+
+Run:
 
 ```bash
 docker compose logs caddy --tail 50 | grep -i -E 'certificate obtained|error'
 ```
 
-Look for `certificate obtained successfully` for `wehobby.app` and `www.wehobby.app` (`iaas.wehobby.app` reuses the certificate from step 9d).
+Check the logs for certificate activity or errors for:
 
-| Setting | Why |
-|---|---|
-| Web build inside the Caddy image | The site and the edge config always ship together, as one tested version |
-| `api` has no `ports` | Only Caddy is reachable from the internet. It forwards `/api/*` to the API |
-| `IMAGE_TAG` in `.env` | Every deploy is a known commit; changing the tag is the deploy and the rollback |
+```text
+wehobby.app
+www.wehobby.app
+iaas.wehobby.app
+```
+Output:
+```text
+azureuser@vm-wehobby-iaas-dev-01:/opt/wehobby$ docker compose logs caddy --tail 50 | grep -i -E 'certificate obtained|error'
+caddy-1  | {"level":"info","ts":1791803288.999106,"logger":"tls.obtain","msg":"certificate obtained successfully","identifier":"www.wehobby.app","issuer":"acme-v02.api.letsencrypt.org-direct
+ory"}
+caddy-1  | {"level":"info","ts":1791803289.0125635,"logger":"tls.obtain","msg":"certificate obtained successfully","identifier":"wehobby.app","issuer":"acme-v02.api.letsencrypt.org-directory
+"}
+```
 
-### 11d. Test
+DNS was configured before this deployment so the public names already point to the VM when Caddy requests the new certificates.
 
-From your computer:
+---
+
+### 12d. Validate the deployment
+
+After the containers are running, validate each layer instead of checking only the homepage.
+
+#### Test the main website
+
+From Windows PowerShell:
 
 ```powershell
 curl.exe -sI https://wehobby.app
+```
+
+Output result:
+
+```text
+PS C:\Users\gdamasceno> curl.exe -sI https://wehobby.app
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Alt-Svc: h3=":443"; ma=2592000
+Cache-Control: no-cache
+Content-Length: 799
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+Content-Type: text/html; charset=utf-8
+Cross-Origin-Opener-Policy: same-origin
+Etag: "dm196et5v474m7"
+Last-Modified: Sat, 10 Oct 2026 15:11:28 GMT
+Permissions-Policy: camera=(self), geolocation=(self), microphone=(), payment=(), usb=()
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Vary: Accept-Encoding
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Date: Mon, 12 Oct 2026 11:10:31 GMT
+```
+
+
+---
+
+#### Test the www redirect
+
+```powershell
 curl.exe -sI https://www.wehobby.app
-curl.exe -s https://wehobby.app/api/health
-curl.exe -s https://iaas.wehobby.app/health
 ```
 
 Expected:
-- `HTTP/2 200` for `wehobby.app`, with `strict-transport-security` and `content-security-policy` headers
-- `HTTP/2 301` from `www` with `location: https://wehobby.app/`
-- `{"status":"ok","version":"sha-..."}`
-- `ok`
 
-Open `https://wehobby.app` on your phone: it shows **API status: ok**, and the language picker switches between Portuguese and English.
+```text
+PS C:\Users\gdamasceno> curl.exe -sI https://www.wehobby.app
+HTTP/1.1 301 Moved Permanently
+Alt-Svc: h3=":443"; ma=2592000
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
+Cross-Origin-Opener-Policy: same-origin
+Location: https://wehobby.app/
+Permissions-Policy: camera=(self), geolocation=(self), microphone=(), payment=(), usb=()
+Referrer-Policy: strict-origin-when-cross-origin
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Date: Mon, 12 Oct 2026 11:11:28 GMT
+```
+
+The canonical site address is therefore:
+
+```text
+https://wehobby.app
+```
+
+Result:
+
+![Opening WeHobby.App](images/wehobbypage1.png)
+
+Expected:
+
+- WeHobby page loads
+- API status shows `ok`
+- English and Portuguese language selection works
+- HTTPS certificate is valid
+
+---
+
+#### Test the API
+
+```powershell
+curl.exe -s https://wehobby.app/api/health
+```
+
+Output:
+
+```json
+{"status":"ok","version":"sha-e8d2d8a"}
+```
+
+This proves:
+
+```text
+Computer
+   |
+   v
+HTTPS
+   |
+   v
+Caddy
+   |
+   v
+/api/health
+   |
+   v
+API container
+```
+
+---
+
+#### Test the infrastructure health endpoint
+
+```powershell
+curl.exe -s https://iaas.wehobby.app/health
+```
+
+Output:
+
+```text
+ok
+```
+
+---
+
+#### Verify that internal services are not exposed
 
 From the VM:
 
@@ -1176,53 +2201,211 @@ From the VM:
 sudo ss -tlnp | grep -E ':(80|443|3000|5432) '
 ```
 
-Expected: 80 and 443 only.
+Result:
+
+```text
+azureuser@vm-wehobby-iaas-dev-01:/opt/wehobby$ sudo ss -tlnp | grep -E ':(80|443|3000|5432) '
+LISTEN 0      4096         0.0.0.0:80        0.0.0.0:*    users:(("docker-proxy",pid=36906,fd=8))                 
+LISTEN 0      4096         0.0.0.0:443       0.0.0.0:*    users:(("docker-proxy",pid=36926,fd=8))                 
+LISTEN 0      4096            [::]:80           [::]:*    users:(("docker-proxy",pid=36911,fd=8))                 
+LISTEN 0      4096            [::]:443          [::]:*    users:(("docker-proxy",pid=36932,fd=8))          
+```
+
+Ports `3000` and `5432` should not be published on the VM host.
+
+The network path should remain:
+
+```text
+Internet
+   |
+   | 80 / 443
+   v
+Caddy
+   |
+   | Docker network
+   +----------> API :3000
+                   |
+                   | Docker network
+                   v
+              PostgreSQL :5432
+```
+
+---
+
+#### Verify PostgreSQL/PostGIS
+
+Run:
 
 ```bash
 docker compose exec db psql -U wehobby -d wehobby -c "SELECT PostGIS_Version();"
 ```
 
-Expected: `3.5 ...`, the same database as in step 9e.
+Output:
 
-#### Clean up
+```text
+            postgis_version            
+---------------------------------------
+ 3.5 USE_GEOS=1 USE_PROJ=1 USE_STATS=1
+(1 row)
+```
 
-Once everything works, remove the files the new image replaces (the copies stay in `backup-step9/`):
+This confirms the existing database is still available after changing the application stack.
+
+---
+
+#### Clean up the old placeholder files
+
+Only after all validation succeeds, remove the old Step 9 files that are no longer required by the new image:
 
 ```bash
 rm -r site Caddyfile
 ```
 
-### 11e. Roll back
+The backup remains under:
 
-To a previous version: put its tag back and restart.
+```text
+backup-step9/
+```
+
+---
+
+### 12e. Rollback
+
+Application versions are controlled using:
+
+```text
+IMAGE_TAG
+```
+
+For example:
+
+```text
+IMAGE_TAG=sha-e8d2d8a
+```
+
+A future deployment can use another tag:
+
+```text
+IMAGE_TAG=sha-xxxxxxx
+```
+
+To roll back to a previous application version, change the tag:
 
 ```bash
-sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=sha-<previous tag>/' .env
+sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=sha-<previous-tag>/' .env
 ```
+
+Then:
 
 ```bash
 docker compose up -d
 ```
 
-Back to the step 9d placeholder:
+Docker Compose will restore the application images associated with that version.
 
-```bash
-cp -rp backup-step9/compose.yaml backup-step9/Caddyfile backup-step9/site . && docker compose up -d --remove-orphans
+The database remains on `/datadisk`, independently of the application container version.
+
+
+> **Good to know:** with VM auto shutdown enabled, the public website is unavailable while the VM is stopped. When the VM starts again, Docker starts and containers configured with `restart: unless-stopped` start automatically.
+
+---
+
+## Updated Scenario 01 sequence
+
+The Scenario 01 build sequence is now:
+
+```text
+Step 1
+Resource group
+      |
+      v
+Step 2
+Budget
+      |
+      v
+Step 3
+Virtual network
+      |
+      v
+Step 4
+Network security group
+      |
+      v
+Step 5
+Storage account
+      |
+      v
+Step 6
+Virtual machine
+      |
+      v
+Step 7
+Managed identity role assignment
+      |
+      v
+Step 8
+DNS
+      |
+      v
+Step 9
+Prepare the VM
+  - Bastion
+  - data disk
+  - Docker
+  - Caddy placeholder
+  - PostgreSQL/PostGIS
+  - managed identity test
+      |
+      v
+Step 10
+Backup decision
+  - intentionally not implemented in dev
+      |
+      v
+Step 11
+Build Milestone 1
+  - Claude Code planning
+  - React frontend
+  - Fastify API
+  - Caddy edge image
+  - Docker images
+  - Docker Compose
+  - CI
+  - GitHub Container Registry
+      |
+      v
+Step 12
+Deploy Milestone 1
+  - DNS
+  - publish packages
+  - deploy to VM
+  - HTTPS
+  - validation
+  - rollback
+      |
+      v
+Next application slices
+  - authentication
+  - profile
+  - hobbies
+  - location
+  - photos
+  - feeds
+  - interactions
+  - safety
 ```
 
-### Result
+The important separation is:
 
-| Check | Result |
-|---|---|
-| `@` and `www` resolve to the VM | |
-| Image tag deployed | |
-| Certificates for `wehobby.app` and `www` | |
-| `https://wehobby.app` shows API status: ok | |
-| `www` redirects to the apex | |
-| `/api/health` | |
-| Only 80 and 443 listening | |
-| Database data still there | |
+```text
+Steps 1-10 = build and validate the infrastructure
 
-> **Good to know:** with auto shutdown on, the site is down while the VM is off. When the VM starts again, Docker starts and `restart: unless-stopped` brings the three containers back, with no manual step.
+Step 11 = build the application artifact
 
-> **Good to know:** the `Strict-Transport-Security` header tells browsers to use HTTPS only. The whole `.app` domain is already on the browsers' HTTPS-only list, so this adds no new risk, but it means every `*.wehobby.app` name must always have a valid certificate.
+Step 12 = deploy that artifact to Scenario 01
+
+Next steps = build the actual WeHobby product features
+```
+
+This keeps the infrastructure learning journey separate from application development while still showing how the two come together in Scenario 01.
+
