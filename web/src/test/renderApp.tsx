@@ -14,6 +14,7 @@ export const giovanna: Profile = {
   displayName: 'Giovanna',
   bio: '',
   language: 'en',
+  hobbies: [{ hobbyId: 'crochet', typeIds: ['amigurumi'] }],
   createdAt: '2026-10-10T10:00:00.000Z',
 };
 

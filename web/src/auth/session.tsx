@@ -1,4 +1,4 @@
-import type { CreateProfile, Profile, UpdateProfile } from '@wehobby/shared';
+import type { CreateProfile, Profile, SetUserHobbies, UpdateProfile } from '@wehobby/shared';
 import {
   createContext,
   useCallback,
@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { setMyHobbies } from '../api/hobbies';
 import { checkUsername, createMyProfile, fetchMyProfile, updateMyProfile } from '../api/profile';
 import type { AuthClient } from './authClient';
 
@@ -22,6 +23,7 @@ export interface Session {
   signOut: () => Promise<void>;
   createProfile: (input: CreateProfile) => Promise<Profile>;
   updateProfile: (patch: UpdateProfile) => Promise<Profile>;
+  setHobbies: (input: SetUserHobbies) => Promise<Profile>;
   isUsernameAvailable: (username: string) => Promise<boolean>;
 }
 
@@ -112,6 +114,11 @@ export function SessionProvider({ createAuthClient, children }: SessionProviderP
       },
       async updateProfile(patch) {
         const updated = await updateMyProfile(await requireClient().getAccessToken(), patch);
+        applyProfile(updated);
+        return updated;
+      },
+      async setHobbies(input) {
+        const updated = await setMyHobbies(await requireClient().getAccessToken(), input);
         applyProfile(updated);
         return updated;
       },

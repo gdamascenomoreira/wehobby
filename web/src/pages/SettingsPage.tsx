@@ -7,6 +7,7 @@ import {
 } from '@wehobby/shared';
 import { useState, type SubmitEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router';
 import { useSession } from '../auth/session';
 import { Field } from '../components/Field';
 import { LanguageSelect } from '../components/LanguageSelect';
@@ -54,6 +55,9 @@ export function SettingsPage({ profile }: { profile: Profile }) {
     <main className="page">
       <h1>{t('settings.title')}</h1>
       <p>{t('settings.account', { username: profile.username })}</p>
+      <p>
+        <Link to="/hobbies">{t('settings.editHobbies')}</Link>
+      </p>
 
       <form className="form" noValidate onSubmit={(event) => void handleSubmit(event)}>
         <Field label={t('profile.displayName.label')} error={errors.displayName}>

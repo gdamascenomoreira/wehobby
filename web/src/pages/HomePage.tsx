@@ -2,20 +2,27 @@ import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
 import { useSession } from '../auth/session';
 import { ApiStatus } from '../components/ApiStatus';
+import { useHobbyNames } from '../components/hobbyNames';
 
 export function HomePage() {
   const { t } = useTranslation();
   const { status, profile, signIn } = useSession();
+  const names = useHobbyNames();
 
   if (status === 'needsProfile') {
     return <Navigate to="/onboarding" replace />;
   }
 
   if (status === 'ready' && profile) {
+    if (profile.hobbies.length === 0) {
+      return <Navigate to="/hobbies" replace />;
+    }
+    const hobbies = profile.hobbies.map((hobby) => names.hobby(hobby.hobbyId)).join(', ');
     return (
       <main className="page home">
         <h1 className="home__title">{t('home.welcome', { name: profile.displayName })}</h1>
         <p className="home__tagline">@{profile.username}</p>
+        <p>{t('home.yourHobbies', { hobbies })}</p>
         <p>{t('home.comingSoon')}</p>
       </main>
     );

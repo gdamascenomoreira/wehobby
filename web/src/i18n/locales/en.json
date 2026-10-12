@@ -29,7 +29,8 @@
   },
   "home": {
     "welcome": "Hello, {{name}}!",
-    "comingSoon": "Your hobby feed is coming soon."
+    "comingSoon": "Your hobby feed is coming soon.",
+    "yourHobbies": "Your hobbies: {{hobbies}}"
   },
   "profile": {
     "username": {
@@ -65,10 +66,48 @@
     "account": "Signed in as @{{username}}",
     "save": "Save changes",
     "saved": "Changes saved.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "editHobbies": "Edit your hobbies"
   },
   "form": {
     "saving": "Saving…",
     "error": "Something went wrong. Please try again."
+  },
+  "hobbies": {
+    "onboardingTitle": "Pick your hobbies",
+    "title": "Your hobbies",
+    "intro": "Pick one or more. Your feed shows only these hobbies, and you can change them later.",
+    "typesLegend": "What do you like in {{hobby}}? (optional)",
+    "pickOne": "Pick at least one hobby.",
+    "continue": "Continue",
+    "save": "Save hobbies",
+    "names": {
+      "crochet": "Crochet",
+      "plants": "Plants",
+      "photography": "Photography"
+    },
+    "types": {
+      "crochet": {
+        "amigurumi": "Amigurumi",
+        "tapestry": "Tapestry",
+        "granny_squares": "Granny squares",
+        "garments": "Garments",
+        "accessories": "Accessories"
+      },
+      "plants": {
+        "succulents": "Succulents",
+        "houseplants": "Houseplants",
+        "vegetable_garden": "Vegetable garden",
+        "orchids": "Orchids",
+        "bonsai": "Bonsai"
+      },
+      "photography": {
+        "landscape": "Landscape",
+        "portrait": "Portrait",
+        "street": "Street",
+        "macro": "Macro",
+        "film": "Film"
+      }
+    }
   }
 }

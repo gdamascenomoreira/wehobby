@@ -29,7 +29,8 @@
   },
   "home": {
     "welcome": "Olá, {{name}}!",
-    "comingSoon": "O teu feed de hobbies está a chegar."
+    "comingSoon": "O teu feed de hobbies está a chegar.",
+    "yourHobbies": "Os teus hobbies: {{hobbies}}"
   },
   "profile": {
     "username": {
@@ -65,10 +66,48 @@
     "account": "Sessão iniciada como @{{username}}",
     "save": "Guardar alterações",
     "saved": "Alterações guardadas.",
-    "signOut": "Terminar sessão"
+    "signOut": "Terminar sessão",
+    "editHobbies": "Editar os teus hobbies"
   },
   "form": {
     "saving": "A guardar…",
     "error": "Algo correu mal. Tenta de novo."
+  },
+  "hobbies": {
+    "onboardingTitle": "Escolhe os teus hobbies",
+    "title": "Os teus hobbies",
+    "intro": "Escolhe um ou mais. O teu feed mostra só estes hobbies, e podes mudá-los mais tarde.",
+    "typesLegend": "O que gostas em {{hobby}}? (opcional)",
+    "pickOne": "Escolhe pelo menos um hobby.",
+    "continue": "Continuar",
+    "save": "Guardar hobbies",
+    "names": {
+      "crochet": "Crochet",
+      "plants": "Plantas",
+      "photography": "Fotografia"
+    },
+    "types": {
+      "crochet": {
+        "amigurumi": "Amigurumi",
+        "tapestry": "Tapeçaria",
+        "granny_squares": "Granny squares",
+        "garments": "Roupa",
+        "accessories": "Acessórios"
+      },
+      "plants": {
+        "succulents": "Suculentas",
+        "houseplants": "Plantas de interior",
+        "vegetable_garden": "Horta",
+        "orchids": "Orquídeas",
+        "bonsai": "Bonsai"
+      },
+      "photography": {
+        "landscape": "Paisagem",
+        "portrait": "Retrato",
+        "street": "Rua",
+        "macro": "Macro",
+        "film": "Analógica"
+      }
+    }
   }
 }

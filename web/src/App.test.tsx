@@ -17,6 +17,17 @@ const health: ApiRoutes = {
   'GET /api/health': () => json({ status: 'ok', version: 'test' }),
 };
 
+const catalog: ApiRoutes = {
+  'GET /api/hobbies': () =>
+    json({
+      hobbies: [
+        { id: 'crochet', types: [{ id: 'amigurumi' }, { id: 'tapestry' }] },
+        { id: 'plants', types: [{ id: 'succulents' }] },
+        { id: 'photography', types: [] },
+      ],
+    }),
+};
+
 describe('App', () => {
   beforeEach(async () => {
     await i18n.changeLanguage('en');
@@ -102,15 +113,16 @@ describe('App', () => {
       );
     });
 
-    it('creates the profile with the access token, then shows the home page', async () => {
+    it('creates the profile with the access token, then asks for hobbies', async () => {
       const created: unknown[] = [];
       const fetchMock = stubApi({
         ...health,
+        ...catalog,
         'GET /api/usernames/giovanna_crochet': () =>
           json({ username: 'giovanna_crochet', available: true }),
         'POST /api/me': (body) => {
           created.push(body);
-          return json(giovanna, 201);
+          return json({ ...giovanna, hobbies: [] }, 201);
         },
       });
       const user = userEvent.setup();
@@ -123,7 +135,7 @@ describe('App', () => {
       await user.click(screen.getByLabelText('I am 16 or older'));
       await user.click(screen.getByRole('button', { name: 'Create profile' }));
 
-      expect(await screen.findByRole('heading', { name: 'Hello, Giovanna!' })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Pick your hobbies' })).toBeInTheDocument();
       expect(created).toEqual([
         {
           username: 'giovanna_crochet',
@@ -159,6 +171,96 @@ describe('App', () => {
       await user.click(screen.getByLabelText('I am 16 or older'));
       await user.click(screen.getByRole('button', { name: 'Create profile' }));
       expect(await screen.findByText('This username is already taken.')).toBeInTheDocument();
+    });
+  });
+
+  describe('hobbies', () => {
+    it('makes a user without hobbies pick at least one, with optional types', async () => {
+      const saved: unknown[] = [];
+      const fetchMock = stubApi({
+        ...health,
+        ...catalog,
+        'GET /api/me': () => json({ ...giovanna, hobbies: [] }),
+        'PUT /api/me/hobbies': (body) => {
+          saved.push(body);
+          return json({ ...giovanna, hobbies: [{ hobbyId: 'crochet', typeIds: ['tapestry'] }] });
+        },
+      });
+      const user = userEvent.setup();
+      renderApp({ auth: fakeAuthClient(true) });
+
+      expect(await screen.findByRole('heading', { name: 'Pick your hobbies' })).toBeInTheDocument();
+      await user.click(await screen.findByRole('button', { name: 'Continue' }));
+      expect(screen.getByRole('alert')).toHaveTextContent('Pick at least one hobby.');
+      expect(fetchMock).not.toHaveBeenCalledWith(
+        '/api/me/hobbies',
+        expect.objectContaining({ method: 'PUT' }),
+      );
+
+      // Types show only once their hobby is picked.
+      expect(screen.queryByLabelText('Tapestry')).not.toBeInTheDocument();
+      await user.click(screen.getByLabelText('Crochet'));
+      await user.click(screen.getByLabelText('Tapestry'));
+      await user.click(screen.getByLabelText('Plants'));
+      await user.click(screen.getByLabelText('Plants'));
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+      expect(await screen.findByText('Your hobbies: Crochet')).toBeInTheDocument();
+      expect(saved).toEqual([{ hobbies: [{ hobbyId: 'crochet', typeIds: ['tapestry'] }] }]);
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/me/hobbies',
+        expect.objectContaining({
+          headers: expect.objectContaining({ authorization: `Bearer ${TEST_TOKEN}` }) as unknown,
+        }),
+      );
+    });
+
+    it('edits the hobbies from settings', async () => {
+      const saved: unknown[] = [];
+      stubApi({
+        ...health,
+        ...catalog,
+        'GET /api/me': () => json(giovanna),
+        'PUT /api/me/hobbies': (body) => {
+          saved.push(body);
+          return json({
+            ...giovanna,
+            hobbies: [
+              { hobbyId: 'crochet', typeIds: ['amigurumi'] },
+              { hobbyId: 'photography', typeIds: [] },
+            ],
+          });
+        },
+      });
+      const user = userEvent.setup();
+      renderApp({ auth: fakeAuthClient(true), path: '/settings' });
+
+      await user.click(await screen.findByRole('link', { name: 'Edit your hobbies' }));
+      expect(await screen.findByLabelText('Amigurumi')).toBeChecked();
+      await user.click(screen.getByLabelText('Photography'));
+      await user.click(screen.getByRole('button', { name: 'Save hobbies' }));
+
+      expect(await screen.findByText('Your hobbies: Crochet, Photography')).toBeInTheDocument();
+      expect(saved).toEqual([
+        {
+          hobbies: [
+            { hobbyId: 'crochet', typeIds: ['amigurumi'] },
+            { hobbyId: 'photography', typeIds: [] },
+          ],
+        },
+      ]);
+    });
+
+    it('shows hobby names in Portuguese', async () => {
+      stubApi({
+        ...health,
+        ...catalog,
+        'GET /api/me': () => json({ ...giovanna, language: 'pt' }),
+      });
+      renderApp({ auth: fakeAuthClient(true), path: '/hobbies' });
+
+      expect(await screen.findByLabelText('Plantas')).toBeInTheDocument();
+      expect(screen.getByLabelText('Fotografia')).toBeInTheDocument();
     });
   });
 

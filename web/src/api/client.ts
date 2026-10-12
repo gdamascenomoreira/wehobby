@@ -12,7 +12,7 @@ export class ApiRequestError extends Error {
 }
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH';
   body?: unknown;
   token?: string;
   signal?: AbortSignal;
