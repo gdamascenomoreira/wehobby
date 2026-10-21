@@ -8,3 +8,6 @@ package-lock.json
 
 # Markdown is written by hand; keep authors' formatting.
 *.md
+
+# Bicep files and the main.json compiled from them follow the Bicep tooling.
+docs/scenarios/01-iaas/bicep/
