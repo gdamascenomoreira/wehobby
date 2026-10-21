@@ -1,14 +1,17 @@
 # Edge for the scenario 01 VM: HTTPS (Let's Encrypt), the web build and the API.
 #
-# SITE_ADDRESS sets the names Caddy serves and gets certificates for. Run the
-# same image locally over plain HTTP with SITE_ADDRESS=:80.
+# The same image runs on every VM; nothing here names a host.
+# SITE_ADDRESS sets the names Caddy serves and gets certificates for, from the
+# VM's .env. Without it Caddy serves plain HTTP on :80 and requests no
+# certificates, which is also how it runs locally and in CI.
 # API_UPSTREAM is the API container, reached on the Docker network only.
 
-{$SITE_ADDRESS:wehobby.app, www.wehobby.app, iaas.wehobby.app} {
+{$SITE_ADDRESS::80} {
 	encode zstd gzip
 
-	@www host www.wehobby.app
-	redir @www https://wehobby.app{uri} permanent
+	# www.<name> redirects to <name>, for whichever names SITE_ADDRESS lists.
+	@www header_regexp www Host ^www\.(.+)$
+	redir @www https://{re.www.1}{uri} permanent
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"

@@ -79,6 +79,19 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
 
+      # A VM without SITE_ADDRESS must fail to start, not fall back to another
+      # VM's host names.
+      - name: Compose requires SITE_ADDRESS
+        working-directory: deploy/vm
+        env:
+          POSTGRES_PASSWORD: ci-only-not-a-secret
+        run: |
+          if docker compose config --quiet 2> error.txt; then
+            echo "::error::compose.yaml accepted a missing SITE_ADDRESS"
+            exit 1
+          fi
+          grep -q 'SITE_ADDRESS' error.txt
+
       # Runs deploy/vm/compose.yaml as on the VM, over plain HTTP on :80.
       - name: Start the VM stack
         working-directory: deploy/vm
@@ -102,6 +115,9 @@ jobs:
             exit 1
           fi
           curl --silent --show-error --head http://localhost/ | grep -i 'content-security-policy'
+          # www.<name> redirects to <name> for any host, with the path kept.
+          curl --silent --show-error --head -H 'Host: www.example.test' http://localhost/some/page \
+            | tr -d '\r' | grep -qix 'location: https://example.test/some/page'
 
       - name: Logs
         if: always()

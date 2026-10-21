@@ -1,7 +1,8 @@
 name: Images
 
-# Builds and pushes the images the scenario 01 VM runs. Deploying a tag to the
-# VM is a manual step for now (docs/scenarios/01-iaas/portal-guide.md, step 11).
+# Builds and pushes the images the scenario 01 VMs (portal and Bicep) run. The
+# same tag runs on both. Deploying a tag to a VM is a manual step for now
+# (docs/scenarios/01-iaas/portal-guide.md, step 12).
 on:
   push:
     branches: [main]
@@ -79,5 +80,5 @@ jobs:
           {
             echo "Pushed \`$IMAGE\`."
             echo
-            echo "Deploy on the VM with \`IMAGE_TAG=$TAG\` in \`/opt/wehobby/.env\`."
+            echo "Deploy on each VM with \`IMAGE_TAG=$TAG\` in \`/opt/wehobby/.env\`."
           } >> "$GITHUB_STEP_SUMMARY"
