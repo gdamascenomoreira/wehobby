@@ -1,0 +1,42 @@
+#cloud-config
+# Runs once, on the first boot of the VM.
+# Reproduces portal guide steps 9b (data disk) and 9c (Docker).
+
+# 9b. Partition, format and mount the data disk (LUN 0)
+disk_setup:
+  /dev/disk/azure/scsi1/lun0:
+    table_type: gpt
+    layout: true
+    overwrite: false
+
+fs_setup:
+  - device: /dev/disk/azure/scsi1/lun0
+    partition: 1
+    filesystem: ext4
+    label: datadisk
+
+mounts:
+  - ["/dev/disk/azure/scsi1/lun0-part1", "/datadisk", "ext4", "defaults,nofail", "0", "2"]
+
+# 9c. Docker prerequisites and log driver
+package_update: true
+packages:
+  - ca-certificates
+  - curl
+
+write_files:
+  - path: /etc/docker/daemon.json
+    content: |
+      {"log-driver":"local"}
+
+runcmd:
+  - install -m 0755 -d /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+  - chmod a+r /etc/apt/keyrings/docker.asc
+  - sh -c 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $VERSION_CODENAME) stable" > /etc/apt/sources.list.d/docker.list'
+  - apt-get update
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  - usermod -aG docker azureuser
+  # 9b.5 and 9d.1 folders
+  - mkdir -p /datadisk/postgres /datadisk/caddy /opt/wehobby
+  - chown azureuser:azureuser /opt/wehobby
