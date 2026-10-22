@@ -2,6 +2,8 @@
 
 Step by step guide for building scenario 01 manually in the Azure portal. Settings and decisions are recorded in the [deployment log](deployment-log.md); this page shows **how** to do it, with screenshots.
 
+> **Retired (22 Oct 2026):** the VM built with this guide is stopped and no longer serves `wehobby.app`. The site now runs on the Bicep VM, see the [Bicep guide](bicep-guide.md). This guide stays as the record of the manual build; IP addresses and record targets below are the ones from that time.
+
 > Before adding screenshots, hide subscription ID, tenant ID, email addresses and public IPs.
 
 **Date built: *2026 October*

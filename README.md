@@ -47,7 +47,7 @@ flowchart LR
 * The database lives on a separate data disk. Photos go to Blob Storage, reached with the VM's managed identity (no keys).
 * Images are built by GitHub Actions and published to GitHub Container Registry. The VM runs a specific commit, set by `IMAGE_TAG`.
 
-How the VM was built, step by step: [`docs/scenarios/01-iaas/portal-guide.md`](docs/scenarios/01-iaas/portal-guide.md).
+The site runs on a VM deployed with Bicep: [`docs/scenarios/01-iaas/bicep-guide.md`](docs/scenarios/01-iaas/bicep-guide.md). The first VM was built by hand in the portal ([`portal-guide.md`](docs/scenarios/01-iaas/portal-guide.md)) and is now retired.
 
 ## Tech stack
 

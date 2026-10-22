@@ -1,2 +1,5 @@
 * text=auto eol=lf
 *.png binary
+# The VM was created from a CRLF build of this file. customData cannot change on
+# an existing VM, so keep the bytes stable for every checkout.
+docs/scenarios/01-iaas/bicep/cloud-init.yaml text eol=crlf

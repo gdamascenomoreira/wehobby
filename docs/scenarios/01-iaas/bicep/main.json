@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "13441161785679183113"
+      "templateHash": "9306335419017647773"
     }
   },
   "parameters": {
@@ -55,9 +55,17 @@
       "type": "string",
       "defaultValue": "wehobby.app"
     },
-    "dnsRecordName": {
-      "type": "string",
-      "defaultValue": "iaas-bicep"
+    "dnsRecordNames": {
+      "type": "array",
+      "defaultValue": [
+        "@",
+        "www",
+        "iaas",
+        "iaas-bicep"
+      ],
+      "metadata": {
+        "description": "Alias A records pointing to the VM public IP. Use @ for the apex."
+      }
     },
     "budgetAmount": {
       "type": "int"
@@ -757,8 +765,8 @@
           "zoneName": {
             "value": "[parameters('dnsZoneName')]"
           },
-          "recordName": {
-            "value": "[parameters('dnsRecordName')]"
+          "recordNames": {
+            "value": "[parameters('dnsRecordNames')]"
           },
           "publicIpId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'computeDeployment'), '2025-04-01').outputs.publicIpId.value]"
@@ -771,15 +779,18 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "13657467503762064668"
+              "templateHash": "8477986272476186582"
             }
           },
           "parameters": {
             "zoneName": {
               "type": "string"
             },
-            "recordName": {
-              "type": "string"
+            "recordNames": {
+              "type": "array",
+              "metadata": {
+                "description": "Record names in the zone. Use @ for the apex."
+              }
             },
             "publicIpId": {
               "type": "string"
@@ -787,9 +798,13 @@
           },
           "resources": [
             {
+              "copy": {
+                "name": "aliasRecords",
+                "count": "[length(parameters('recordNames'))]"
+              },
               "type": "Microsoft.Network/dnsZones/A",
               "apiVersion": "2018-05-01",
-              "name": "[format('{0}/{1}', parameters('zoneName'), parameters('recordName'))]",
+              "name": "[format('{0}/{1}', parameters('zoneName'), parameters('recordNames')[copyIndex()])]",
               "properties": {
                 "TTL": 3600,
                 "targetResource": {
@@ -799,9 +814,12 @@
             }
           ],
           "outputs": {
-            "fqdn": {
-              "type": "string",
-              "value": "[format('{0}.{1}', parameters('recordName'), parameters('zoneName'))]"
+            "fqdns": {
+              "type": "array",
+              "copy": {
+                "count": "[length(parameters('recordNames'))]",
+                "input": "[if(equals(parameters('recordNames')[copyIndex()], '@'), parameters('zoneName'), format('{0}.{1}', parameters('recordNames')[copyIndex()], parameters('zoneName')))]"
+              }
             }
           }
         }
@@ -925,9 +943,9 @@
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'computeDeployment'), '2025-04-01').outputs.fqdn.value]"
     },
-    "customDomain": {
-      "type": "string",
-      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('sharedResourceGroupName')), 'Microsoft.Resources/deployments', 'dnsDeployment'), '2025-04-01').outputs.fqdn.value]"
+    "customDomains": {
+      "type": "array",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('sharedResourceGroupName')), 'Microsoft.Resources/deployments', 'dnsDeployment'), '2025-04-01').outputs.fqdns.value]"
     },
     "storageAccountName": {
       "type": "string",

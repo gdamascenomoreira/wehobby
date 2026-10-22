@@ -2,6 +2,8 @@
 
 Manual deployment in the Azure portal. Every resource, every setting chosen and why. This log is the spec for the Bicep and Terraform versions.
 
+> **Status (22 Oct 2026):** the portal VM is retired and stopped. The site runs on the Bicep VM (`rg-wehobby-iaas-dev-bicep`), see the [change log](#change-log) and the [Bicep guide](bicep-guide.md).
+
 ## Architecture (budget version)
 
 - One Ubuntu VM (B-series) running Docker Compose: Caddy (HTTPS with Let's Encrypt, serves the web app, proxies `/api`), the API, PostgreSQL + PostGIS (`postgis/postgis:17-3.5`, same as local dev)
@@ -116,7 +118,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 
 | Setting | Value | Why |
 |---|---|---|
-| Records | `iaas`, `@` (apex) and `www`: A alias records → `pip-vm-wehobby-iaas-dev-01` | Alias records follow the IP and prevent dangling DNS. The apex points at this VM until scenario 03 |
+| Records | `iaas`, `@` (apex) and `www`: A alias records → `pip-vm-wehobby-iaas-dev-01` until 22 Oct 2026. Now `@`, `www`, `iaas` and `iaas-bicep` → `pip-vm-wehobby-iaas-dev-bicep-01`, managed by Bicep | Alias records follow the IP and prevent dangling DNS. The apex points at the IaaS VM until scenario 03 |
 | DNS hosted at | Azure DNS zone `wehobby.app` in `rg-wehobby-shared`, delegated from Porkbun | Records managed in Azure, Bicep and Terraform |
 
 **Notes / issues:**
@@ -149,10 +151,25 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Images | `ghcr.io/gdamascenomoreira/wehobby-web` (Caddy + web build) and `wehobby-api`, public packages | No registry cost, the VM pulls without credentials |
 | Version | `IMAGE_TAG=sha-<commit>` in `/opt/wehobby/.env` | Every deploy is a known commit; rollback is the previous tag |
 | Exposed ports | 80 and 443 (Caddy only) | API and database stay on the Compose network |
-| Site names | `wehobby.app`, `www.wehobby.app` (redirects to the apex), `iaas.wehobby.app` | |
+| Site names | `wehobby.app`, `www.wehobby.app` (redirects to the apex), `iaas.wehobby.app` | Since 22 Oct 2026 served by the Bicep VM, which also serves `iaas-bicep.wehobby.app` |
 | Deploys | Manual through Bastion | Automated deploys come in milestone 2 |
 
 **Notes / issues:**
+
+---
+
+## Change log
+
+### 22 Oct 2026: DNS moved to the Bicep VM, portal VM retired
+
+| Item | Value |
+|---|---|
+| DNS | `@`, `www` and `iaas` A alias records in `wehobby.app` (`rg-wehobby-shared`) moved by hand from the portal VM (`20.107.217.244`) to the Bicep VM (`20.223.199.236`). `iaas-bicep` already pointed there |
+| Bicep VM `SITE_ADDRESS` | `wehobby.app, www.wehobby.app, iaas.wehobby.app, iaas-bicep.wehobby.app` |
+| Bicep VM `IMAGE_TAG` | `sha-5b1bc79` |
+| Checks | `/health` OK on all four names, `www.wehobby.app` returns 301 to `wehobby.app` |
+| Portal VM | `vm-wehobby-iaas-dev-01` stopped (deallocated), no longer serves any name |
+| Follow up | `dns.bicep` now declares all four records, so the hand-made change is brought under Bicep by the next deploy ([Redeploy after this change](bicep-guide.md#redeploy-after-this-change)) |
 
 ---
 

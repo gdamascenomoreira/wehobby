@@ -14,7 +14,7 @@ This repo is **public** and is also the owner's portfolio. Code quality, clear c
 
 The same app is deployed in several infrastructure scenarios (see `docs/README.md`). Keep the app independent of the hosting: configuration through environment variables, the same container images everywhere, and no code that assumes a specific Azure service.
 
-* **Current target: scenario 01 (IaaS).** One Ubuntu VM running Docker Compose: Caddy (HTTPS, serves the web build, proxies `/api`), the API, and PostgreSQL + PostGIS. Photos in Blob Storage through the VM's managed identity. The VM was built by hand; `docs/scenarios/01-iaas/portal-guide.md` is the source of truth for what exists.
+* **Current target: scenario 01 (IaaS).** One Ubuntu VM running Docker Compose: Caddy (HTTPS, serves the web build, proxies `/api`), the API, and PostgreSQL + PostGIS. Photos in Blob Storage through the VM's managed identity. The VM is deployed with Bicep (`rg-wehobby-iaas-dev-bicep`); `docs/scenarios/01-iaas/bicep/` and `docs/scenarios/01-iaas/bicep-guide.md` are the source of truth for what exists. The first VM, built by hand (`portal-guide.md`), is retired.
 * **On hold until scenario 03 (Container Apps):** the Terraform in `infra/`, Container Apps, Static Web Apps and the `functions/` workspace. The conventions below still apply when that work starts.
 
 ## Stack

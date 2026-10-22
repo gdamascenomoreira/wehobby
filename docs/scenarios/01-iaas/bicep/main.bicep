@@ -22,7 +22,13 @@ param autoShutdownTimeZone string = 'GMT Standard Time'
 
 param sharedResourceGroupName string = 'rg-wehobby-shared'
 param dnsZoneName string = 'wehobby.app'
-param dnsRecordName string = 'iaas-bicep'
+@description('Alias A records pointing to the VM public IP. Use @ for the apex.')
+param dnsRecordNames array = [
+  '@'
+  'www'
+  'iaas'
+  'iaas-bicep'
+]
 
 param budgetAmount int
 @description('First day of a month, yyyy-MM-dd. Cannot be changed after the budget is created.')
@@ -107,7 +113,7 @@ module dns './modules/dns.bicep' = {
   scope: az.resourceGroup(sharedResourceGroupName)
   params: {
     zoneName: dnsZoneName
-    recordName: dnsRecordName
+    recordNames: dnsRecordNames
     publicIpId: compute.outputs.publicIpId
   }
 }
@@ -131,5 +137,5 @@ output resourceGroupName string = resourceGroup.name
 output vmName string = compute.outputs.vmName
 output publicIpAddress string = compute.outputs.publicIpAddress
 output azureFqdn string = compute.outputs.fqdn
-output customDomain string = dns.outputs.fqdn
+output customDomains array = dns.outputs.fqdns
 output storageAccountName string = storage.outputs.storageAccountName
