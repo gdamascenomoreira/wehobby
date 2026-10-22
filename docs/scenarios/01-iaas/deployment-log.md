@@ -170,6 +170,7 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Checks | `/health` OK on all four names, `www.wehobby.app` returns 301 to `wehobby.app` |
 | Portal VM | `vm-wehobby-iaas-dev-01` stopped (deallocated), no longer serves any name |
 | Follow up | `dns.bicep` now declares all four records, so the hand-made change is brought under Bicep by the next deploy ([Redeploy after this change](bicep-guide.md#redeploy-after-this-change)) |
+| Redeploy | First attempt failed with `PropertyChangeNotAllowed` on `linuxConfiguration.ssh.publicKeys`: the key read from a regenerated `.pub` file was not byte for byte the one on the VM (what-if did not show it). Succeeded with the key read from the VM (`az vm show ... keyData`); guide updated |
 
 ---
 

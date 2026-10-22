@@ -1275,6 +1275,10 @@ Expected: `ssh-rsa` and `False`.
 
 > **Good to know:** environment variables only last for the current PowerShell window. Open a new window and they must be set again.
 
+> **Warning:** always use the **public** key, the line starting with `ssh-rsa` (the `.pub` file). Never the private key file, which starts with `-----BEGIN`. The check above must print `ssh-rsa`.
+
+> **Good to know:** this reads the key from the `.pub` file, which is right for the first deployment. For a VM that already exists, take the key from the VM instead (see [Redeploy after this change](#redeploy-after-this-change)).
+
 ---
 
 ## Step 18: Build, preview and deploy
@@ -1382,7 +1386,20 @@ Run 18b again. Expected: everything `=` No change (apart from possible noise). T
 
 ## Redeploy after this change
 
-On 22 Oct 2026 the `@`, `www` and `iaas` records were moved to this VM by hand in the portal, and `dns.bicep` now declares all four records. Redeploying brings the hand-made records under Bicep. Use the same PowerShell session and environment variables as step 17b (`WEHOBBY_SSH_PUBLIC_KEY`, `WEHOBBY_BUDGET_EMAIL`).
+On 22 Oct 2026 the `@`, `www` and `iaas` records were moved to this VM by hand in the portal, and `dns.bicep` now declares all four records. Redeploying brings the hand-made records under Bicep. Set `WEHOBBY_BUDGET_EMAIL` as in step 17b, but take the SSH key from the VM:
+
+```powershell
+$env:WEHOBBY_SSH_PUBLIC_KEY = az vm show -g rg-wehobby-iaas-dev-bicep -n vm-wehobby-iaas-dev-bicep-01 --query "osProfile.linuxConfiguration.ssh.publicKeys[0].keyData" -o json | ConvertFrom-Json
+$env:WEHOBBY_SSH_PUBLIC_KEY.Substring(0, 7)
+```
+
+Expected: `ssh-rsa`.
+
+> **Warning:** Azure does not allow changing the SSH key of an existing VM. If the key in the template is not byte for byte the one stored on the VM, the deploy fails with `PropertyChangeNotAllowed` on `linuxConfiguration.ssh.publicKeys`. A `.pub` file read with `Get-Content -Raw`, or a regenerated one, can differ (line endings, comment, a new key). Reading `keyData` from the VM always matches.
+
+> **Warning:** always use the **public** key, the line starting with `ssh-rsa` (the `.pub` file). Never the private key file, which starts with `-----BEGIN`. The check above must print `ssh-rsa`.
+
+> **Good to know:** what-if does not show SSH key changes. A clean what-if does not mean the key matches; only the deploy finds out.
 
 ### Preview first
 
