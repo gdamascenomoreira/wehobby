@@ -81,7 +81,7 @@ describe('GET /api/config', () => {
     expect(PublicConfigSchema.parse(response.json())).toEqual({
       auth: {
         clientId: TEST_ENV.AUTH_WEB_CLIENT_ID,
-        authority: `https://${TEST_ENV.AUTH_TENANT_SUBDOMAIN}.ciamlogin.com/`,
+        authority: `https://${TEST_ENV.AUTH_TENANT_SUBDOMAIN}.ciamlogin.com/${TEST_ENV.AUTH_TENANT_ID}/`,
         apiScope: `api://${TEST_ENV.AUTH_API_CLIENT_ID}/access_as_user`,
       },
     });
