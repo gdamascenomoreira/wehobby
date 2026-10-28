@@ -80,7 +80,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       requiredScope: API_SCOPE_NAME,
       public: {
         clientId: webClientId,
-        authority: `https://${subdomain}.ciamlogin.com/`,
+        authority: `https://${subdomain}.ciamlogin.com/${tenantId}/`,
         apiScope: `api://${apiClientId}/${API_SCOPE_NAME}`,
       },
     },
