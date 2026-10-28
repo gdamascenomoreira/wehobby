@@ -1,15 +1,17 @@
-import { HealthResponseSchema } from '@wehobby/shared';
+import { HealthResponseSchema, PublicConfigSchema } from '@wehobby/shared';
 import type { FastifyInstance } from 'fastify';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../app.js';
-import { loadConfig } from '../config.js';
+import { connectDatabase } from '../db/client.js';
+import { testConfig, TEST_ENV } from '../test/config.js';
 
 const WEB_ORIGIN = 'https://dev.wehobby.app';
 
+// These routes never query the database; the pool only connects on first use.
+const unusedDb = connectDatabase(TEST_ENV.DATABASE_URL).db;
+
 async function createApp(env: NodeJS.ProcessEnv = {}): Promise<FastifyInstance> {
-  return buildApp(
-    loadConfig({ NODE_ENV: 'test', LOG_LEVEL: 'silent', APP_VERSION: 'test-version', ...env }),
-  );
+  return buildApp(testConfig(env), { db: unusedDb });
 }
 
 describe('GET /api/health', () => {
@@ -69,19 +71,19 @@ describe('GET /api/health', () => {
   });
 });
 
-describe('loadConfig', () => {
-  it('works with no environment variables', () => {
-    const config = loadConfig({});
+describe('GET /api/config', () => {
+  it('returns the public sign in settings, without auth', async () => {
+    const app = await createApp();
+    const response = await app.inject({ method: 'GET', url: '/api/config' });
+    await app.close();
 
-    expect(config.PORT).toBe(3000);
-    expect(config.CORS_ORIGIN).toBeUndefined();
-  });
-
-  it('rejects an invalid CORS origin', () => {
-    expect(() => loadConfig({ CORS_ORIGIN: 'not a url' })).toThrow();
-  });
-
-  it('rejects an invalid port', () => {
-    expect(() => loadConfig({ PORT: '70000' })).toThrow();
+    expect(response.statusCode).toBe(200);
+    expect(PublicConfigSchema.parse(response.json())).toEqual({
+      auth: {
+        clientId: TEST_ENV.AUTH_WEB_CLIENT_ID,
+        authority: `https://${TEST_ENV.AUTH_TENANT_SUBDOMAIN}.ciamlogin.com/`,
+        apiScope: `api://${TEST_ENV.AUTH_API_CLIENT_ID}/access_as_user`,
+      },
+    });
   });
 });

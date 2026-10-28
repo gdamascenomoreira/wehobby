@@ -11,3 +11,5 @@
 !api/tsconfig.build.json
 !api/src/**
 **/*.test.ts
+api/src/test/**
+!api/drizzle/**
