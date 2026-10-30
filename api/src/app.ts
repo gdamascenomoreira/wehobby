@@ -5,6 +5,7 @@ import type { JWTVerifyGetKey } from 'jose';
 import { createTokenVerifier } from './auth.js';
 import type { Config } from './config.js';
 import type { Database } from './db/client.js';
+import { isDatabaseError } from './db/errors.js';
 import { createReadinessCheck, type ReadinessCheck } from './db/readiness.js';
 import { sendError } from './errors.js';
 import { healthRoute } from './routes/health.js';
@@ -51,6 +52,10 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
       return sendError(reply, 'validation', error instanceof Error ? error.message : 'Bad request');
     }
     request.log.error(error);
+    if (isDatabaseError(error)) {
+      // Never send SQL or driver details to the client; they are in the log.
+      return sendError(reply, 'service_unavailable', 'WeHobby is temporarily unavailable');
+    }
     return sendError(reply, 'internal', 'Something went wrong');
   });
 

@@ -10,6 +10,7 @@ const STATUS_CODES: Record<ApiErrorCode, number> = {
   username_taken: 409,
   rate_limited: 429,
   internal: 500,
+  service_unavailable: 503,
 };
 
 export function sendError(reply: FastifyReply, error: ApiErrorCode, message: string) {
