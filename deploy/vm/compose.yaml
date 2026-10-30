@@ -27,6 +27,22 @@ services:
       api:
         condition: service_healthy
 
+  # One-shot: applies pending database migrations, then exits. It runs on every
+  # `docker compose up -d`, before the API starts, so an empty database works
+  # with no manual step, and migrations run once per deploy even if several API
+  # containers run later. Check it with `docker compose logs migrate`.
+  migrate:
+    image: ${IMAGE_PREFIX:-ghcr.io/gdamascenomoreira}/wehobby-api:${IMAGE_TAG:?set IMAGE_TAG in .env}
+    restart: 'no'
+    working_dir: /app/api
+    command: ['node', 'dist/migrate.js']
+    environment:
+      # The password is hex (step 9d), so it needs no URL encoding.
+      DATABASE_URL: &database-url postgres://wehobby:${POSTGRES_PASSWORD}@db:5432/wehobby
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     image: ${IMAGE_PREFIX:-ghcr.io/gdamascenomoreira}/wehobby-api:${IMAGE_TAG:?set IMAGE_TAG in .env}
     restart: unless-stopped
@@ -34,15 +50,24 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       # Caddy is the only client, and it sets X-Forwarded-For to the real client IP.
       TRUST_PROXY: 'true'
-      # The password is hex (step 9d), so it needs no URL encoding.
-      DATABASE_URL: postgres://wehobby:${POSTGRES_PASSWORD}@db:5432/wehobby
+      DATABASE_URL: *database-url
       AUTH_TENANT_ID: ${AUTH_TENANT_ID:?set AUTH_TENANT_ID in .env}
       AUTH_TENANT_SUBDOMAIN: ${AUTH_TENANT_SUBDOMAIN}
       AUTH_API_CLIENT_ID: ${AUTH_API_CLIENT_ID:?set AUTH_API_CLIENT_ID in .env}
       AUTH_WEB_CLIENT_ID: ${AUTH_WEB_CLIENT_ID:?set AUTH_WEB_CLIENT_ID in .env}
+    # Healthy only when the database answers and every migration is applied,
+    # so Caddy starts only when the API can really serve requests.
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:3000/api/ready || exit 1']
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # Unchanged from step 9d, so the existing data on the data disk is reused.
   db:

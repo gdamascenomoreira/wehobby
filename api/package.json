@@ -11,7 +11,8 @@
     "typecheck": "tsc -b",
     "start": "node dist/server.js",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsc -b ../packages/shared/tsconfig.build.json && node --env-file-if-exists=.env.local --import tsx src/migrate.ts"
+    "db:migrate": "tsc -b ../packages/shared/tsconfig.build.json && node --env-file-if-exists=.env.local --import tsx src/migrate.ts",
+    "db:migrate:prod": "node dist/migrate.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.0",

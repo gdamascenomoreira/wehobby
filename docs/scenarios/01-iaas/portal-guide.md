@@ -1592,6 +1592,8 @@ When later features require something to change on the VM, such as:
 
 the required commands are documented and run manually.
 
+> **Good to know:** database migrations were later moved out of this list. Since the sign in slice, the Compose file has a one-shot `migrate` service that applies them on every `docker compose up -d`. See [12f. Database migrations](#12f-database-migrations).
+
 ---
 
 ### Result
@@ -2031,6 +2033,8 @@ Output:
 
 ![Results for downloading and starting the new app](images/downloadandstartnewapp.png)
 
+> **Good to know:** this screenshot is from Milestone 1. The current Compose file also has a one-shot `migrate` service. It runs the database migrations and exits, so it only shows in `docker compose ps -a`, with `Exited (0)`. See [12f. Database migrations](#12f-database-migrations).
+
 The database continues using the existing data under:
 
 ```text
@@ -2309,6 +2313,121 @@ The database remains on `/datadisk`, independently of the application container 
 
 
 > **Good to know:** with VM auto shutdown enabled, the public website is unavailable while the VM is stopped. When the VM starts again, Docker starts and containers configured with `restart: unless-stopped` start automatically.
+
+---
+
+### 12f. Database migrations
+
+Migrations run automatically. `compose.yaml` has a one-shot `migrate` service that uses the same `wehobby-api` image and `IMAGE_TAG` as the API:
+
+```text
+db (healthy)
+   |
+   v
+migrate (node dist/migrate.js, exits 0)
+   |
+   v
+api (healthy on /api/ready)
+   |
+   v
+caddy
+```
+
+* `migrate` waits for the database to be healthy, applies any pending migration, and exits. It has `restart: "no"`, so it runs once per `docker compose up -d`.
+* `api` starts only when `migrate` exits with code 0. If a migration fails, the API stays down instead of serving a half migrated database.
+* The API healthcheck calls `/api/ready`, which answers 200 only when the database is reachable **and** the newest migration of the image is applied. Caddy waits for it. `/api/health` stays a cheap liveness check.
+
+This also covers a VM with a new, empty data disk: `docker compose up -d` creates every table, with no manual step.
+
+Check it:
+
+```bash
+docker compose logs migrate
+```
+
+Expected, on an empty database:
+
+```text
+migrate-1  | Migrations applied, latest is 0000_init_users
+```
+
+And on every later deploy:
+
+```text
+migrate-1  | Migrations: nothing to apply, the database is up to date
+```
+
+A failure prints `Migration failed: <reason>` followed by the full error, and `docker compose ps -a` shows `migrate` with `Exited (1)`.
+
+Check readiness from the VM:
+
+```bash
+docker compose exec api wget -q -O - http://127.0.0.1:3000/api/ready
+```
+
+Expected: `{"status":"ready"}`. When it is not ready the API answers 503 with a reason, `database_unreachable` or `migrations_pending`.
+
+**Manual fallback.** To run the migrations again by hand, for example after fixing a failure:
+
+```bash
+docker compose run --rm migrate
+```
+
+Or inside the running API container:
+
+```bash
+docker exec -w /app/api wehobby-api-1 npm run db:migrate:prod
+```
+
+Then `docker compose up -d` again, so the API and Caddy start.
+
+> **Good to know:** migrations run in Compose and not when the API server starts. Later scenarios can run several API instances at once, and migrations must run exactly once per deploy.
+
+---
+
+### 12g. Troubleshooting: sign in fails with 500 on /api/me
+
+**Symptoms**
+
+* Sign in with Entra External ID works, but the app shows an error right after it.
+* The browser network tab shows `GET /api/me` failing with 500. With the current API it is a 503 and the message "WeHobby is temporarily unavailable, please try again".
+* `docker compose ps` shows every container as healthy, and `/api/health` returns 200.
+
+**Logs**
+
+Follow the API log, then sign in again:
+
+```bash
+docker logs -f --tail 0 wehobby-api-1
+```
+
+Look for:
+
+```text
+relation "users" does not exist
+```
+
+**Cause**
+
+The database is empty: the tables were never created. This happened after rebuilding the VM with Bicep, which created a new, empty data disk, while the old Compose file had no `migrate` service. `/api/health` does not touch the database, so everything looked healthy.
+
+**Fix**
+
+1. Make sure `/opt/wehobby/compose.yaml` is the current version from `deploy/vm/compose.yaml`, with the `migrate` service.
+2. Run:
+
+   ```bash
+   docker compose up -d
+   docker compose logs migrate
+   ```
+
+3. If the Compose file cannot be updated yet, run the migrations by hand:
+
+   ```bash
+   docker exec -w /app/api wehobby-api-1 node dist/migrate.js
+   ```
+
+4. Check that `/api/ready` returns `{"status":"ready"}` (see 12f) and sign in again.
 
 ---
 

@@ -8,6 +8,7 @@ export const API_ERROR_CODES = [
   'username_taken',
   'rate_limited',
   'internal',
+  'service_unavailable',
 ] as const;
 export const ApiErrorCodeSchema = z.enum(API_ERROR_CODES);
 export type ApiErrorCode = z.infer<typeof ApiErrorCodeSchema>;

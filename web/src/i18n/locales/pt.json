@@ -20,6 +20,7 @@
   "session": {
     "loading": "A carregar…",
     "error": "Não foi possível ligar ao WeHobby. Verifica a tua ligação e tenta de novo.",
+    "unavailable": "O WeHobby está temporariamente indisponível, tenta de novo.",
     "retry": "Tentar de novo"
   },
   "signIn": {

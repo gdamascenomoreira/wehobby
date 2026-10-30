@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { sql } from 'drizzle-orm';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import type { Database } from './client.js';
 
@@ -7,4 +9,30 @@ export const MIGRATIONS_FOLDER = fileURLToPath(new URL('../../drizzle', import.m
 
 export async function runMigrations(db: Database): Promise<void> {
   await migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
+}
+
+interface Journal {
+  entries: { when: number; tag: string }[];
+}
+
+/** The newest migration shipped with this build, as written in the drizzle-kit journal. */
+export function latestMigration(folder = MIGRATIONS_FOLDER): { when: number; tag: string } | null {
+  const journal = JSON.parse(readFileSync(`${folder}/meta/_journal.json`, 'utf8')) as Journal;
+  return journal.entries.at(-1) ?? null;
+}
+
+/**
+ * `created_at` of the newest migration recorded in the database, or null when
+ * none ran yet. Drizzle stores the journal's `when` value in that column.
+ */
+export async function latestAppliedMigration(db: Database): Promise<number | null> {
+  const result = await db.execute<{ exists: boolean }>(
+    sql`select to_regclass('drizzle.__drizzle_migrations') is not null as exists`,
+  );
+  if (!result.rows[0]?.exists) return null;
+  const applied = await db.execute<{ latest: string | null }>(
+    sql`select max(created_at)::text as latest from drizzle.__drizzle_migrations`,
+  );
+  const latest = applied.rows[0]?.latest;
+  return latest == null ? null : Number(latest);
 }

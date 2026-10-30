@@ -20,6 +20,7 @@
   "session": {
     "loading": "Loading…",
     "error": "We could not reach WeHobby. Check your connection and try again.",
+    "unavailable": "WeHobby is temporarily unavailable, please try again.",
     "retry": "Try again"
   },
   "signIn": {

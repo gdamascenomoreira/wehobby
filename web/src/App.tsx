@@ -38,10 +38,10 @@ function AppRoutes() {
     );
   }
 
-  if (status === 'error') {
+  if (status === 'error' || status === 'unavailable') {
     return (
       <main className="page home">
-        <p role="alert">{t('session.error')}</p>
+        <p role="alert">{t(status === 'error' ? 'session.error' : 'session.unavailable')}</p>
         <button
           type="button"
           className="button"

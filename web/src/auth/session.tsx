@@ -9,10 +9,13 @@ import {
   type ReactNode,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ApiRequestError } from '../api/client';
 import { checkUsername, createMyProfile, fetchMyProfile, updateMyProfile } from '../api/profile';
 import type { AuthClient } from './authClient';
 
-export type SessionStatus = 'loading' | 'signedOut' | 'needsProfile' | 'ready' | 'error';
+/** 'unavailable': the API answered 503, for example while the database is down. */
+export type SessionStatus =
+  'loading' | 'signedOut' | 'needsProfile' | 'ready' | 'error' | 'unavailable';
 
 export interface Session {
   status: SessionStatus;
@@ -87,7 +90,9 @@ export function SessionProvider({ createAuthClient, children }: SessionProviderP
 
     start().catch((error: unknown) => {
       console.error('Could not start the session', error);
-      if (!cancelled) setStatus('error');
+      if (cancelled) return;
+      const unavailable = error instanceof ApiRequestError && error.status === 503;
+      setStatus(unavailable ? 'unavailable' : 'error');
     });
     return () => {
       cancelled = true;
