@@ -5,10 +5,12 @@ import type { JWTVerifyGetKey } from 'jose';
 import { createTokenVerifier } from './auth.js';
 import type { Config } from './config.js';
 import type { Database } from './db/client.js';
+import { createReadinessCheck, type ReadinessCheck } from './db/readiness.js';
 import { sendError } from './errors.js';
 import { healthRoute } from './routes/health.js';
 import { meRoute } from './routes/me.js';
 import { publicConfigRoute } from './routes/public-config.js';
+import { readyRoute } from './routes/ready.js';
 import { usernamesRoute } from './routes/usernames.js';
 import { createUserRepository } from './users/repository.js';
 
@@ -19,6 +21,8 @@ export interface AppDependencies {
   db: Database;
   /** Signing keys for access tokens. Defaults to the tenant JWKS; tests pass local keys. */
   getSigningKey?: JWTVerifyGetKey;
+  /** Readiness check behind /api/ready. Defaults to checking `db`; tests pass a fake. */
+  checkReadiness?: ReadinessCheck;
 }
 
 export async function buildApp(config: Config, deps: AppDependencies): Promise<FastifyInstance> {
@@ -71,6 +75,9 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
   await app.register(
     async (api) => {
       await api.register(healthRoute, { version: config.APP_VERSION });
+      await api.register(readyRoute, {
+        check: deps.checkReadiness ?? createReadinessCheck(deps.db),
+      });
       await api.register(publicConfigRoute, { config: { auth: config.auth.public } });
       await api.register(usernamesRoute, { users, verifyToken });
       await api.register(meRoute, { users, verifyToken });
