@@ -162,6 +162,33 @@ describe('App', () => {
     });
   });
 
+  describe('when /api/me fails', () => {
+    it('says WeHobby is temporarily unavailable on 503', async () => {
+      stubApi({
+        ...health,
+        'GET /api/me': () => json({ error: 'service_unavailable', message: 'unavailable' }, 503),
+      });
+      renderApp({ auth: fakeAuthClient(true) });
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'WeHobby is temporarily unavailable, please try again.',
+      );
+      expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+    });
+
+    it('keeps the generic message for other errors', async () => {
+      stubApi({
+        ...health,
+        'GET /api/me': () => json({ error: 'internal', message: 'oops' }, 500),
+      });
+      renderApp({ auth: fakeAuthClient(true) });
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'We could not reach WeHobby. Check your connection and try again.',
+      );
+    });
+  });
+
   describe('signed in with a profile', () => {
     it('uses the language saved in the profile', async () => {
       stubApi({ ...health, 'GET /api/me': () => json({ ...giovanna, language: 'pt' }) });
