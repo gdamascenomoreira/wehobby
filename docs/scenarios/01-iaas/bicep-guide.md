@@ -1625,6 +1625,40 @@ Expected: all four return the public IP from the deployment output.
 
 > **Good to know:** from here the VM is in the same state as the portal VM after step 9c. The Compose stack and the application (portal steps 9d, 11 and 12) are deployed the same way as in the portal guide. They are application deployment, not infrastructure, so they stay out of Bicep.
 
+### 19j. Database on a new data disk
+
+A new VM from this template gets a new, **empty** data disk, so PostgreSQL starts with no tables. Nothing extra is needed: the `migrate` service in `compose.yaml` creates them on the first `docker compose up -d`, before the API starts (portal guide [12f](portal-guide.md#12f-database-migrations)).
+
+After starting the stack in `/opt/wehobby`:
+
+```bash
+docker compose logs migrate
+```
+
+Expected:
+
+```text
+migrate-1  | Migrations applied, latest is 0000_init_users
+```
+
+Then:
+
+```bash
+docker compose exec api wget -q -O - http://127.0.0.1:3000/api/ready
+```
+
+Expected: `{"status":"ready"}`.
+
+Manual fallback, if `migrate` failed or the Compose file is an old copy without it:
+
+```bash
+docker compose run --rm migrate
+# or, with the old Compose file:
+docker exec -w /app/api wehobby-api-1 node dist/migrate.js
+```
+
+> **Warning:** on 30 Oct 2026 the first rebuild of this VM ran an old `compose.yaml` with no `migrate` service. Every container was healthy and `/api/health` returned 200, but sign in failed with a 500 on `/api/me` (`relation "users" does not exist`). Always copy the current `deploy/vm/compose.yaml` to the VM. See the portal guide [12g. Troubleshooting](portal-guide.md#12g-troubleshooting-sign-in-fails-with-500-on-apime).
+
 ---
 
 ## Step 20: Tear down
