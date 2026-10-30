@@ -36,5 +36,5 @@ COPY --from=build --chown=node:node /app/api/drizzle api/drizzle
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
-  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT}/api/health" || exit 1
+  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT}/api/ready" || exit 1
 CMD ["node", "api/dist/server.js"]
