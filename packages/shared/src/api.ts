@@ -6,6 +6,8 @@ export const API_ERROR_CODES = [
   'not_found',
   'profile_exists',
   'username_taken',
+  'invalid_hobby',
+  'invalid_type',
   'rate_limited',
   'internal',
   'service_unavailable',
