@@ -6,6 +6,8 @@ import i18n, { LANGUAGE_STORAGE_KEY } from './i18n';
 import {
   fakeAuthClient,
   giovanna,
+  giovannaHobbies,
+  hobbyCatalog,
   json,
   renderApp,
   stubApi,
@@ -102,7 +104,7 @@ describe('App', () => {
       );
     });
 
-    it('creates the profile with the access token, then shows the home page', async () => {
+    it('creates the profile with the access token, then shows the hobby step', async () => {
       const created: unknown[] = [];
       const fetchMock = stubApi({
         ...health,
@@ -112,6 +114,7 @@ describe('App', () => {
           created.push(body);
           return json(giovanna, 201);
         },
+        'GET /api/hobbies': () => json(hobbyCatalog),
       });
       const user = userEvent.setup();
       renderApp({ auth: fakeAuthClient(true) });
@@ -123,7 +126,7 @@ describe('App', () => {
       await user.click(screen.getByLabelText('I am 16 or older'));
       await user.click(screen.getByRole('button', { name: 'Create profile' }));
 
-      expect(await screen.findByRole('heading', { name: 'Hello, Giovanna!' })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: 'Pick your hobbies' })).toBeInTheDocument();
       expect(created).toEqual([
         {
           username: 'giovanna_crochet',
@@ -191,7 +194,11 @@ describe('App', () => {
 
   describe('signed in with a profile', () => {
     it('uses the language saved in the profile', async () => {
-      stubApi({ ...health, 'GET /api/me': () => json({ ...giovanna, language: 'pt' }) });
+      stubApi({
+        ...health,
+        'GET /api/me': () => json({ ...giovanna, language: 'pt' }),
+        'GET /api/me/hobbies': () => json(giovannaHobbies),
+      });
       renderApp({ auth: fakeAuthClient(true) });
 
       expect(await screen.findByRole('heading', { name: 'Olá, Giovanna!' })).toBeInTheDocument();
@@ -203,6 +210,8 @@ describe('App', () => {
       stubApi({
         ...health,
         'GET /api/me': () => json(giovanna),
+        'GET /api/me/hobbies': () => json(giovannaHobbies),
+        'GET /api/hobbies': () => json(hobbyCatalog),
         'PATCH /api/me': (body) => {
           patches.push(body);
           return json({ ...giovanna, bio: 'Amigurumi every day' });

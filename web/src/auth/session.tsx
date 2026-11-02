@@ -1,4 +1,12 @@
-import type { CreateProfile, Profile, UpdateProfile } from '@wehobby/shared';
+import type {
+  CreateProfile,
+  Hobby,
+  MyHobby,
+  Profile,
+  TypeSuggestion,
+  UpdateMyHobbies,
+  UpdateProfile,
+} from '@wehobby/shared';
 import {
   createContext,
   useCallback,
@@ -8,24 +16,38 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useTranslation } from 'react-i18next';
+import i18n from '../i18n';
 import { ApiRequestError } from '../api/client';
+import {
+  fetchHobbyCatalog,
+  fetchMyHobbies,
+  suggestHobbyType,
+  updateMyHobbies,
+} from '../api/hobbies';
 import { checkUsername, createMyProfile, fetchMyProfile, updateMyProfile } from '../api/profile';
 import type { AuthClient } from './authClient';
 
-/** 'unavailable': the API answered 503, for example while the database is down. */
+/**
+ * 'needsHobbies': the user has a profile but has not picked a hobby yet.
+ * 'unavailable': the API answered 503, for example while the database is down.
+ */
 export type SessionStatus =
-  'loading' | 'signedOut' | 'needsProfile' | 'ready' | 'error' | 'unavailable';
+  'loading' | 'signedOut' | 'needsProfile' | 'needsHobbies' | 'ready' | 'error' | 'unavailable';
 
 export interface Session {
   status: SessionStatus;
-  /** Set when status is 'ready'. */
+  /** Set when status is 'needsHobbies' or 'ready'. */
   profile: Profile | null;
+  /** The user's hobbies; not empty when status is 'ready'. */
+  hobbies: MyHobby[];
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   createProfile: (input: CreateProfile) => Promise<Profile>;
   updateProfile: (patch: UpdateProfile) => Promise<Profile>;
   isUsernameAvailable: (username: string) => Promise<boolean>;
+  fetchHobbyCatalog: () => Promise<Hobby[]>;
+  saveHobbies: (input: UpdateMyHobbies) => Promise<MyHobby[]>;
+  suggestType: (input: TypeSuggestion) => Promise<void>;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -46,25 +68,23 @@ interface SessionProviderProps {
 
 /**
  * Signs the user in with Entra External ID and loads their WeHobby profile.
- * A signed in user without a profile still has to finish onboarding.
+ * A signed in user without a profile, or without hobbies, still has to finish onboarding.
  */
 export function SessionProvider({ createAuthClient, children }: SessionProviderProps) {
-  const { i18n } = useTranslation();
   const [client, setClient] = useState<AuthClient | null>(null);
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [hobbies, setHobbies] = useState<MyHobby[]>([]);
 
-  const applyProfile = useCallback(
-    (next: Profile) => {
-      setProfile(next);
-      setStatus('ready');
-      // The language saved in the profile wins over the browser language.
-      if (i18n.resolvedLanguage !== next.language) {
-        void i18n.changeLanguage(next.language);
-      }
-    },
-    [i18n],
-  );
+  const applyProfile = useCallback((next: Profile) => {
+    setProfile(next);
+    // The language saved in the profile wins over the browser language. This uses the
+    // i18n instance directly: the one from useTranslation changes on every language
+    // switch, which would restart the session and undo the switch.
+    if (i18n.resolvedLanguage !== next.language) {
+      void i18n.changeLanguage(next.language);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,13 +99,18 @@ export function SessionProvider({ createAuthClient, children }: SessionProviderP
         setStatus('signedOut');
         return;
       }
-      const mine = await fetchMyProfile(await auth.getAccessToken());
+      const token = await auth.getAccessToken();
+      const mine = await fetchMyProfile(token);
       if (isCancelled()) return;
-      if (mine) {
-        applyProfile(mine);
-      } else {
+      if (!mine) {
         setStatus('needsProfile');
+        return;
       }
+      const myHobbies = (await fetchMyHobbies(token)) ?? [];
+      if (isCancelled()) return;
+      applyProfile(mine);
+      setHobbies(myHobbies);
+      setStatus(myHobbies.length > 0 ? 'ready' : 'needsHobbies');
     }
 
     start().catch((error: unknown) => {
@@ -108,11 +133,15 @@ export function SessionProvider({ createAuthClient, children }: SessionProviderP
     return {
       status,
       profile,
+      hobbies,
       signIn: () => requireClient().signIn(),
       signOut: () => requireClient().signOut(),
       async createProfile(input) {
         const created = await createMyProfile(await requireClient().getAccessToken(), input);
         applyProfile(created);
+        // A new profile has no hobbies yet: the hobby step comes next.
+        setHobbies([]);
+        setStatus('needsHobbies');
         return created;
       },
       async updateProfile(patch) {
@@ -124,8 +153,20 @@ export function SessionProvider({ createAuthClient, children }: SessionProviderP
         const token = await requireClient().getAccessToken();
         return (await checkUsername(token, username)).available;
       },
+      async fetchHobbyCatalog() {
+        return fetchHobbyCatalog(await requireClient().getAccessToken());
+      },
+      async saveHobbies(input) {
+        const saved = await updateMyHobbies(await requireClient().getAccessToken(), input);
+        setHobbies(saved);
+        setStatus('ready');
+        return saved;
+      },
+      async suggestType(input) {
+        await suggestHobbyType(await requireClient().getAccessToken(), input);
+      },
     };
-  }, [client, status, profile, applyProfile]);
+  }, [client, status, profile, hobbies, applyProfile]);
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }

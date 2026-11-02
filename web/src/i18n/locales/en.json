@@ -30,7 +30,8 @@
   },
   "home": {
     "welcome": "Hello, {{name}}!",
-    "comingSoon": "Your hobby feed is coming soon."
+    "comingSoon": "Your hobby feed is coming soon.",
+    "yourHobbies": "Your hobbies"
   },
   "profile": {
     "username": {
@@ -66,7 +67,74 @@
     "account": "Signed in as @{{username}}",
     "save": "Save changes",
     "saved": "Changes saved.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "hobbies": {
+      "title": "Your hobbies",
+      "save": "Save hobbies"
+    }
+  },
+  "hobbies": {
+    "crochet": {
+      "name": "Crochet",
+      "types": {
+        "amigurumi": "Amigurumi",
+        "granny_squares": "Granny squares",
+        "tapestry": "Tapestry",
+        "garments": "Garments",
+        "accessories": "Accessories",
+        "home_decor": "Home decor",
+        "blankets": "Blankets"
+      }
+    },
+    "plants": {
+      "name": "Plants",
+      "types": {
+        "houseplants": "Houseplants",
+        "succulents_cacti": "Succulents and cacti",
+        "orchids": "Orchids",
+        "vegetable_garden": "Vegetable garden",
+        "herbs": "Herbs",
+        "bonsai": "Bonsai",
+        "propagation": "Propagation"
+      }
+    },
+    "photography": {
+      "name": "Photography",
+      "types": {
+        "landscape": "Landscape",
+        "portrait": "Portrait",
+        "street": "Street",
+        "macro": "Macro",
+        "nature_wildlife": "Nature and wildlife",
+        "film": "Film",
+        "mobile": "Mobile"
+      }
+    }
+  },
+  "hobbyPicker": {
+    "hobbies": "Your hobbies",
+    "types": "What do you like in {{hobby}}?",
+    "typesHint": "Optional. Pick as many as you like.",
+    "required": "Pick at least one hobby.",
+    "loadError": "We could not load the hobbies. Please try again."
+  },
+  "hobbyStep": {
+    "title": "Pick your hobbies",
+    "intro": "Choose one or more. You can change them later in Settings.",
+    "submit": "Continue"
+  },
+  "suggestType": {
+    "open": "Suggest a type",
+    "title": "Suggest a hobby type",
+    "intro": "Missing something? Tell us and we will review it.",
+    "hobby": "Hobby",
+    "name": {
+      "label": "Type name",
+      "invalid": "Use 2 to 40 characters."
+    },
+    "submit": "Send suggestion",
+    "sent": "Thank you! We will review your suggestion.",
+    "rateLimited": "You have sent many suggestions. Please try again later."
   },
   "form": {
     "saving": "Saving…",

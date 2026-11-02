@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, Route, Routes } from 'react-router';
 import { useSession } from './auth/session';
 import { LanguagePicker } from './components/LanguagePicker';
+import { HobbyStepPage } from './pages/HobbyStepPage';
 import { HomePage } from './pages/HomePage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -61,6 +62,10 @@ function AppRoutes() {
       <Route
         path="/onboarding"
         element={status === 'needsProfile' ? <OnboardingPage /> : <Navigate to="/" replace />}
+      />
+      <Route
+        path="/onboarding/hobbies"
+        element={status === 'needsHobbies' ? <HobbyStepPage /> : <Navigate to="/" replace />}
       />
       <Route
         path="/settings"

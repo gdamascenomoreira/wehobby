@@ -2,13 +2,20 @@ import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
 import { useSession } from '../auth/session';
 import { ApiStatus } from '../components/ApiStatus';
+import { HobbyIcon } from '../components/HobbyIcon';
+import { useHobbyLabels } from '../components/useHobbyLabels';
 
 export function HomePage() {
   const { t } = useTranslation();
-  const { status, profile, signIn } = useSession();
+  const { hobbyName, typeName } = useHobbyLabels();
+  const { status, profile, hobbies, signIn } = useSession();
 
   if (status === 'needsProfile') {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  if (status === 'needsHobbies') {
+    return <Navigate to="/onboarding/hobbies" replace />;
   }
 
   if (status === 'ready' && profile) {
@@ -16,6 +23,24 @@ export function HomePage() {
       <main className="page home">
         <h1 className="home__title">{t('home.welcome', { name: profile.displayName })}</h1>
         <p className="home__tagline">@{profile.username}</p>
+        <section className="my-hobbies" aria-labelledby="my-hobbies-title">
+          <h2 id="my-hobbies-title">{t('home.yourHobbies')}</h2>
+          <ul className="my-hobbies__list">
+            {hobbies.map((hobby) => (
+              <li key={hobby.hobbyId} className="my-hobbies__item">
+                <HobbyIcon hobbyId={hobby.hobbyId} />
+                <span>
+                  <strong>{hobbyName(hobby.hobbyId)}</strong>
+                  {hobby.typeIds.length > 0 && (
+                    <span className="my-hobbies__types">
+                      {hobby.typeIds.map((typeId) => typeName(hobby.hobbyId, typeId)).join(', ')}
+                    </span>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
         <p>{t('home.comingSoon')}</p>
       </main>
     );

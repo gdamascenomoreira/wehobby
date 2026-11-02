@@ -12,7 +12,7 @@ export class ApiRequestError extends Error {
 }
 
 export interface ApiRequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH';
   body?: unknown;
   token?: string;
   signal?: AbortSignal;
@@ -46,5 +46,7 @@ export async function apiRequest<T extends z.ZodType>(
       error.success ? error.data.message : `Request failed with status ${response.status}`,
     );
   }
-  return schema.parse(await response.json());
+  // Some routes answer 202 or 204 with no body.
+  const text = await response.text();
+  return schema.parse(text ? JSON.parse(text) : undefined);
 }
