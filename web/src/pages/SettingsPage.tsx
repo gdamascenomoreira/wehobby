@@ -9,6 +9,7 @@ import { useState, type SubmitEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/session';
 import { Field } from '../components/Field';
+import { HobbyEditor } from '../components/HobbyEditor';
 import { LanguageSelect } from '../components/LanguageSelect';
 
 type FieldName = 'displayName' | 'bio';
@@ -101,6 +102,11 @@ export function SettingsPage({ profile }: { profile: Profile }) {
           {saving ? t('form.saving') : t('settings.save')}
         </button>
       </form>
+
+      <section className="settings__section" aria-labelledby="settings-hobbies">
+        <h2 id="settings-hobbies">{t('settings.hobbies.title')}</h2>
+        <HobbyEditor submitLabel={t('settings.hobbies.save')} confirmSave />
+      </section>
 
       <button type="button" className="button" onClick={() => void signOut()}>
         {t('settings.signOut')}

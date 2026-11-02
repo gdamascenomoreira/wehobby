@@ -217,6 +217,147 @@ body {
   color: var(--color-ok);
 }
 
+.hobby-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space);
+}
+
+.hobby-picker__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hobby-picker__group legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+  font-weight: 600;
+}
+
+.hobby-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: 0.75rem;
+}
+
+/* The checkbox stays in the page for keyboards and screen readers; the card shows its state. */
+.hobby-card__input,
+.chip__input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.hobby-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 7rem;
+  padding: 1rem 0.5rem;
+  border: 2px solid var(--color-muted);
+  border-radius: 16px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  text-align: center;
+  cursor: pointer;
+}
+
+.hobby-card__name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.hobby-card:has(:checked) {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.hobby-card:has(:focus-visible),
+.chip:has(:focus-visible) {
+  outline: 3px solid var(--color-text);
+  outline-offset: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--color-muted);
+  border-radius: 999px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.chip:has(:checked) {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+}
+
+.link-button {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-brand);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.settings__section {
+  margin: calc(var(--space) * 2) 0;
+}
+
+.my-hobbies {
+  width: 100%;
+  margin: var(--space) 0;
+}
+
+.my-hobbies__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.my-hobbies__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--color-brand);
+  text-align: left;
+}
+
+.my-hobbies__item strong {
+  display: block;
+  color: var(--color-text);
+}
+
+.my-hobbies__types {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
 @media (min-width: 768px) {
   .home__title {
     font-size: 3.5rem;

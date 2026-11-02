@@ -9,6 +9,25 @@ export {
 } from './api.js';
 export { HealthResponseSchema, type HealthResponse } from './health.js';
 export {
+  HobbiesResponseSchema,
+  HobbySchema,
+  MAX_HOBBIES,
+  MAX_TYPES_PER_HOBBY,
+  MyHobbiesSchema,
+  MyHobbySchema,
+  SlugSchema,
+  TYPE_SUGGESTION_NAME_MAX_LENGTH,
+  TYPE_SUGGESTION_NAME_MIN_LENGTH,
+  TypeSuggestionSchema,
+  UpdateMyHobbiesSchema,
+  type HobbiesResponse,
+  type Hobby,
+  type MyHobbies,
+  type MyHobby,
+  type TypeSuggestion,
+  type UpdateMyHobbies,
+} from './hobbies.js';
+export {
   BIO_MAX_LENGTH,
   BioSchema,
   CreateProfileSchema,

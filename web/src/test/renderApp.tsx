@@ -1,4 +1,4 @@
-import type { Profile } from '@wehobby/shared';
+import type { HobbiesResponse, MyHobbies, Profile } from '@wehobby/shared';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { vi } from 'vitest';
@@ -15,6 +15,20 @@ export const giovanna: Profile = {
   bio: '',
   language: 'en',
   createdAt: '2026-10-10T10:00:00.000Z',
+};
+
+/** A small catalog, in the shape of `GET /api/hobbies`. */
+export const hobbyCatalog: HobbiesResponse = {
+  hobbies: [
+    { id: 'crochet', types: [{ id: 'amigurumi' }, { id: 'granny_squares' }] },
+    { id: 'plants', types: [{ id: 'succulents_cacti' }, { id: 'bonsai' }] },
+    { id: 'photography', types: [{ id: 'film' }] },
+  ],
+};
+
+/** Giovanna picked crochet with amigurumi. */
+export const giovannaHobbies: MyHobbies = {
+  hobbies: [{ hobbyId: 'crochet', typeIds: ['amigurumi'] }],
 };
 
 type Handler = (body: unknown) => Response;

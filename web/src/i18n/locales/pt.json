@@ -24,13 +24,14 @@
     "retry": "Tentar de novo"
   },
   "signIn": {
-    "intro": "Junta-te a quem gosta do mesmo hobby que tu: crochet, plantas e fotografia.",
+    "intro": "Junta-te a quem gosta do mesmo hobby que tu: croché, plantas e fotografia.",
     "button": "Entrar ou criar conta",
     "hint": "Com o teu email ou a tua conta Google."
   },
   "home": {
     "welcome": "Olá, {{name}}!",
-    "comingSoon": "O teu feed de hobbies está a chegar."
+    "comingSoon": "O teu feed de hobbies está a chegar.",
+    "yourHobbies": "Os teus hobbies"
   },
   "profile": {
     "username": {
@@ -66,7 +67,74 @@
     "account": "Sessão iniciada como @{{username}}",
     "save": "Guardar alterações",
     "saved": "Alterações guardadas.",
-    "signOut": "Terminar sessão"
+    "signOut": "Terminar sessão",
+    "hobbies": {
+      "title": "Os teus hobbies",
+      "save": "Guardar hobbies"
+    }
+  },
+  "hobbies": {
+    "crochet": {
+      "name": "Croché",
+      "types": {
+        "amigurumi": "Amigurumi",
+        "granny_squares": "Quadrados granny",
+        "tapestry": "Tapeçaria",
+        "garments": "Roupa",
+        "accessories": "Acessórios",
+        "home_decor": "Decoração",
+        "blankets": "Mantas"
+      }
+    },
+    "plants": {
+      "name": "Plantas",
+      "types": {
+        "houseplants": "Plantas de interior",
+        "succulents_cacti": "Suculentas e cactos",
+        "orchids": "Orquídeas",
+        "vegetable_garden": "Horta",
+        "herbs": "Ervas aromáticas",
+        "bonsai": "Bonsai",
+        "propagation": "Propagação"
+      }
+    },
+    "photography": {
+      "name": "Fotografia",
+      "types": {
+        "landscape": "Paisagem",
+        "portrait": "Retrato",
+        "street": "Rua",
+        "macro": "Macro",
+        "nature_wildlife": "Natureza e vida selvagem",
+        "film": "Analógica",
+        "mobile": "Telemóvel"
+      }
+    }
+  },
+  "hobbyPicker": {
+    "hobbies": "Os teus hobbies",
+    "types": "O que te interessa em {{hobby}}?",
+    "typesHint": "Opcional. Escolhe quantos quiseres.",
+    "required": "Escolhe pelo menos um hobby.",
+    "loadError": "Não foi possível carregar os hobbies. Tenta de novo."
+  },
+  "hobbyStep": {
+    "title": "Escolhe os teus hobbies",
+    "intro": "Escolhe um ou mais. Podes alterá-los depois nas Definições.",
+    "submit": "Continuar"
+  },
+  "suggestType": {
+    "open": "Sugerir um tipo",
+    "title": "Sugerir um tipo de hobby",
+    "intro": "Falta alguma coisa? Diz-nos e vamos analisar.",
+    "hobby": "Hobby",
+    "name": {
+      "label": "Nome do tipo",
+      "invalid": "Usa 2 a 40 caracteres."
+    },
+    "submit": "Enviar sugestão",
+    "sent": "Obrigado! Vamos analisar a tua sugestão.",
+    "rateLimited": "Enviaste muitas sugestões. Tenta de novo mais tarde."
   },
   "form": {
     "saving": "A guardar…",

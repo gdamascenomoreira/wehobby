@@ -8,7 +8,9 @@ import type { Database } from './db/client.js';
 import { isDatabaseError } from './db/errors.js';
 import { createReadinessCheck, type ReadinessCheck } from './db/readiness.js';
 import { sendError } from './errors.js';
+import { createHobbyRepository } from './hobbies/repository.js';
 import { healthRoute } from './routes/health.js';
+import { hobbiesRoute } from './routes/hobbies.js';
 import { meRoute } from './routes/me.js';
 import { publicConfigRoute } from './routes/public-config.js';
 import { readyRoute } from './routes/ready.js';
@@ -75,6 +77,7 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
   });
 
   const users = createUserRepository(deps.db);
+  const hobbies = createHobbyRepository(deps.db);
   const verifyToken = createTokenVerifier(config.auth, deps.getSigningKey);
 
   await app.register(
@@ -86,6 +89,7 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
       await api.register(publicConfigRoute, { config: { auth: config.auth.public } });
       await api.register(usernamesRoute, { users, verifyToken });
       await api.register(meRoute, { users, verifyToken });
+      await api.register(hobbiesRoute, { hobbies, verifyToken });
     },
     { prefix: API_PREFIX },
   );
