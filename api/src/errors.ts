@@ -8,6 +8,8 @@ const STATUS_CODES: Record<ApiErrorCode, number> = {
   not_found: 404,
   profile_exists: 409,
   username_taken: 409,
+  invalid_hobby: 400,
+  invalid_type: 400,
   rate_limited: 429,
   internal: 500,
   service_unavailable: 503,
