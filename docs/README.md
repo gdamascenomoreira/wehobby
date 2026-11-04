@@ -8,6 +8,8 @@ Product requirements, infrastructure conventions and deployment notes for WeHobb
 |---|---|
 | [PRD](PRD.md) | Product requirements for the MVP |
 | [Slice prompts](prompts/) | Build instructions per MVP slice |
+| [MVP plan](plan.md) | Status of every step, decisions log and next slices |
+
 
 ## Infrastructure comparison
 
