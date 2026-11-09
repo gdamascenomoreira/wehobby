@@ -168,8 +168,8 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 | Role | Azure Maps Data Reader for the VM managed identity, scoped to the Maps account |
 | Storage | CORS rule on the blob service for `https://wehobby.app` (PUT, OPTIONS), for slice 5 |
 | VM `.env` | `AZURE_MAPS_CLIENT_ID` added to `/opt/wehobby/.env` |
-| Deployment | `wehobby-bicep-maps`; what-if result: _to fill in_ |
-| Checks | _to fill in_ |
+| Deployment | `wehobby-bicep-maps` on 9 Nov 2026, state `Succeeded`, output `mapsClientId`. What-if before: `+` Maps account, `+` Azure Maps Data Reader role assignment, `~` blob service CORS, `=` on the VM, disks, DNS and everything else. What-if after: all `=` |
+| Checks | Roles on the VM identity: Azure Maps Data Reader (Maps account) and Storage Blob Data Contributor ✅. Maps account: G2, Gen2, `northeurope`, local auth disabled ✅. Blob CORS: one rule for `https://wehobby.app` ✅. `AZURE_MAPS_CLIENT_ID` in `/opt/wehobby/.env` once, file still 600 ✅. Test from the VM: managed identity token for `https://atlas.microsoft.com/` (1700 characters), then `GET https://eu.atlas.microsoft.com/geocode?api-version=2023-06-01&query=Lisboa` with `x-ms-client-id` returned `200` ✅ |
 
 ### 22 Oct 2026: DNS moved to the Bicep VM, portal VM retired
 
