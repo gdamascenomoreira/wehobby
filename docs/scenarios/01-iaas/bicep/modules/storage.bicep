@@ -33,6 +33,31 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2025-01-01' = {
 resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01' = {
   name: 'default'
   parent: storageAccount
+  properties: {
+    // Lets the web app upload photos straight to Blob Storage with a SAS URL (slice 5)
+    cors: {
+      corsRules: [
+        {
+          allowedOrigins: [
+            'https://wehobby.app'
+          ]
+          allowedMethods: [
+            'PUT'
+            'OPTIONS'
+          ]
+          allowedHeaders: [
+            'x-ms-blob-type'
+            'content-type'
+            'x-ms-*'
+          ]
+          exposedHeaders: [
+            'x-ms-*'
+          ]
+          maxAgeInSeconds: 3600
+        }
+      ]
+    }
+  }
 }
 
 resource photosContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-01-01' = {

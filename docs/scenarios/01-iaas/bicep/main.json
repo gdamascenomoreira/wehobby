@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "9306335419017647773"
+      "templateHash": "8132214493816628889"
     }
   },
   "parameters": {
@@ -264,7 +264,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "16655990536630180254"
+              "templateHash": "10493588531208129438"
             }
           },
           "parameters": {
@@ -310,6 +310,30 @@
               "type": "Microsoft.Storage/storageAccounts/blobServices",
               "apiVersion": "2025-01-01",
               "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
+              "properties": {
+                "cors": {
+                  "corsRules": [
+                    {
+                      "allowedOrigins": [
+                        "https://wehobby.app"
+                      ],
+                      "allowedMethods": [
+                        "PUT",
+                        "OPTIONS"
+                      ],
+                      "allowedHeaders": [
+                        "x-ms-blob-type",
+                        "content-type",
+                        "x-ms-*"
+                      ],
+                      "exposedHeaders": [
+                        "x-ms-*"
+                      ],
+                      "maxAgeInSeconds": 3600
+                    }
+                  ]
+                }
+              },
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
               ]
@@ -342,6 +366,82 @@
             "photosContainerName": {
               "type": "string",
               "value": "photos"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "mapsDeployment",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.48.1.52935",
+              "templateHash": "2737388854776804546"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "mapsAccountName": {
+              "type": "string",
+              "defaultValue": "map-wehobby-iaas-dev"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Maps/accounts",
+              "apiVersion": "2023-06-01",
+              "name": "[parameters('mapsAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "Gen2",
+              "sku": {
+                "name": "G2"
+              },
+              "properties": {
+                "disableLocalAuth": true
+              }
+            }
+          ],
+          "outputs": {
+            "mapsAccountName": {
+              "type": "string",
+              "value": "[parameters('mapsAccountName')]"
+            },
+            "mapsAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Maps/accounts', parameters('mapsAccountName'))]"
+            },
+            "mapsClientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Maps/accounts', parameters('mapsAccountName')), '2023-06-01').uniqueId]"
             }
           }
         }
@@ -636,6 +736,9 @@
           "storageAccountName": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'storageDeployment'), '2025-04-01').outputs.storageAccountName.value]"
           },
+          "mapsAccountName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'mapsDeployment'), '2025-04-01').outputs.mapsAccountName.value]"
+          },
           "principalId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'computeDeployment'), '2025-04-01').outputs.principalId.value]"
           }
@@ -647,11 +750,14 @@
             "_generator": {
               "name": "bicep",
               "version": "0.48.1.52935",
-              "templateHash": "5969693687415600055"
+              "templateHash": "4861798946004477530"
             }
           },
           "parameters": {
             "storageAccountName": {
+              "type": "string"
+            },
+            "mapsAccountName": {
               "type": "string"
             },
             "principalId": {
@@ -662,7 +768,8 @@
             }
           },
           "variables": {
-            "storageBlobDataContributorRoleId": "ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+            "storageBlobDataContributorRoleId": "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+            "mapsDataReaderRoleId": "423170ca-a8f6-4b0f-8487-9e4eb8f49bfa"
           },
           "resources": [
             {
@@ -675,12 +782,24 @@
                 "principalId": "[parameters('principalId')]",
                 "principalType": "ServicePrincipal"
               }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Maps/accounts', parameters('mapsAccountName'))]",
+              "name": "[guid(resourceId('Microsoft.Maps/accounts', parameters('mapsAccountName')), parameters('principalId'), variables('mapsDataReaderRoleId'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('mapsDataReaderRoleId'))]",
+                "principalId": "[parameters('principalId')]",
+                "principalType": "ServicePrincipal"
+              }
             }
           ]
         }
       },
       "dependsOn": [
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'computeDeployment')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'mapsDeployment')]",
         "[subscriptionResourceId('Microsoft.Resources/resourceGroups', parameters('resourceGroupName'))]",
         "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'storageDeployment')]"
       ]
@@ -950,6 +1069,10 @@
     "storageAccountName": {
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'storageDeployment'), '2025-04-01').outputs.storageAccountName.value]"
+    },
+    "mapsClientId": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('resourceGroupName')), 'Microsoft.Resources/deployments', 'mapsDeployment'), '2025-04-01').outputs.mapsClientId.value]"
     }
   }
 }
