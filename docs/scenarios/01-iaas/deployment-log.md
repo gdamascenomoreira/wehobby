@@ -160,6 +160,17 @@ Manual deployment in the Azure portal. Every resource, every setting chosen and 
 
 ## Change log
 
+### Nov 2026: Azure Maps account and Blob CORS (slice 4, PR 1)
+
+| Item | Value |
+|---|---|
+| Maps | `map-wehobby-iaas-dev`, Gen2, G2, `northeurope`, local auth disabled ([guide](bicep-guide.md#add-azure-maps-and-blob-cors-slice-4)) |
+| Role | Azure Maps Data Reader for the VM managed identity, scoped to the Maps account |
+| Storage | CORS rule on the blob service for `https://wehobby.app` (PUT, OPTIONS), for slice 5 |
+| VM `.env` | `AZURE_MAPS_CLIENT_ID` added to `/opt/wehobby/.env` |
+| Deployment | `wehobby-bicep-maps`; what-if result: _to fill in_ |
+| Checks | _to fill in_ |
+
 ### 22 Oct 2026: DNS moved to the Bicep VM, portal VM retired
 
 | Item | Value |

@@ -1442,6 +1442,116 @@ Expected: `"state": "Succeeded"` and `customDomains` with `wehobby.app`, `www.we
 
 ---
 
+## Add Azure Maps and Blob CORS (slice 4)
+
+Slice 4 (location) needs city search and reverse geocoding, and slice 5 (photo upload) needs the browser to upload straight to Blob Storage. Both infra changes go in one deploy.
+
+### What changed
+
+| File | Change |
+|---|---|
+| `modules/maps.bicep` (new) | Azure Maps account `map-wehobby-iaas-dev`: kind `Gen2`, sku `G2`, `disableLocalAuth: true` (no keys), location `northeurope`. Output `mapsClientId` (`properties.uniqueId`) |
+| `modules/roles.bicep` | **Azure Maps Data Reader** for the VM managed identity, scoped to the Maps account, with a `guid()` name like the storage role |
+| `modules/storage.bicep` | CORS rule on the blob service: origin `https://wehobby.app`, methods `PUT`, `OPTIONS`, allowed headers `x-ms-blob-type`, `content-type`, `x-ms-*`, max age 3600 |
+| `main.bicep` | Calls the Maps module, passes its name to `roles`, new output `mapsClientId` |
+| `main.json` | Rebuilt |
+
+> **Good to know:** Azure Maps is a global service. The account location only picks where request data is stored, the US or the EU geography. `northeurope` keeps it in the EU, like everything else here, and the API calls the EU endpoint `eu.atlas.microsoft.com`. To list the locations Azure accepts for a Maps account:
+>
+> ```powershell
+> az provider show -n Microsoft.Maps --query "resourceTypes[?resourceType=='accounts'].locations" -o json
+> ```
+
+> **Good to know:** with `disableLocalAuth: true` the account has no usable keys. The API gets an Entra ID token for `https://atlas.microsoft.com/.default` with the VM managed identity and sends the account client id in the `x-ms-client-id` header. The client id is not a secret.
+
+### Variables
+
+Same as [Redeploy after this change](#redeploy-after-this-change): take the SSH key from the VM, so it matches byte for byte.
+
+```powershell
+$env:WEHOBBY_SSH_PUBLIC_KEY = az vm show -g rg-wehobby-iaas-dev-bicep -n vm-wehobby-iaas-dev-bicep-01 --query "osProfile.linuxConfiguration.ssh.publicKeys[0].keyData" -o json | ConvertFrom-Json
+$env:WEHOBBY_SSH_PUBLIC_KEY.Substring(0, 7)
+$env:WEHOBBY_BUDGET_EMAIL = "<your budget email>"
+```
+
+Expected: `ssh-rsa`.
+
+### Build
+
+```powershell
+az bicep build --file docs/scenarios/01-iaas/bicep/main.bicep
+az bicep build-params --file docs/scenarios/01-iaas/bicep/main.bicepparam
+```
+
+### Preview first
+
+`main.bicep` has `targetScope = 'subscription'`, so the commands are `az deployment sub`, not `az deployment group`. Subscription deployments are always incremental: resources missing from the template are never deleted.
+
+```powershell
+az deployment sub what-if `
+  --name wehobby-bicep-maps-preview `
+  --location northeurope `
+  --template-file docs/scenarios/01-iaas/bicep/main.bicep `
+  --parameters docs/scenarios/01-iaas/bicep/main.bicepparam
+```
+
+Expected:
+
+| Symbol | Resources |
+|---|---|
+| `+` Create | `map-wehobby-iaas-dev` |
+| `+` Create or Unsupported | Azure Maps Data Reader role assignment (Unsupported for the same reason as in 18b: the name uses the VM `principalId`) |
+| `~` Modify | Blob service `default`: `properties.cors` |
+| `=` No change | VM, disks, NIC, public IP, VNet, NSG, Bastion, DNS records, storage account, `photos`, storage role, budget (apart from noise, see 18b) |
+
+Stop and check before deploying if you see `-` Delete on anything, or `~` on the VM (especially `customData` or `osProfile`), the disks or the DNS record sets.
+
+### Deploy
+
+```powershell
+az deployment sub create `
+  --name wehobby-bicep-maps `
+  --location northeurope `
+  --template-file docs/scenarios/01-iaas/bicep/main.bicep `
+  --parameters docs/scenarios/01-iaas/bicep/main.bicepparam `
+  --query "properties.{state:provisioningState, outputs:outputs}" `
+  --output json
+```
+
+Expected: `"state": "Succeeded"` and a new output `mapsClientId`. Then run the what-if again: everything `=`.
+
+### Check
+
+```powershell
+$principalId = az vm show -g rg-wehobby-iaas-dev-bicep -n vm-wehobby-iaas-dev-bicep-01 --query identity.principalId -o tsv
+az role assignment list --assignee $principalId --all --query "[].{role:roleDefinitionName, scope:scope}" -o table
+az maps account show -g rg-wehobby-iaas-dev-bicep -n map-wehobby-iaas-dev --query "{sku:sku.name, kind:kind, location:location, localAuthDisabled:properties.disableLocalAuth}" -o json
+az storage account blob-service-properties show -g rg-wehobby-iaas-dev-bicep --account-name stwehobbyiaasdevbicep --query cors -o json
+```
+
+Expected: `Azure Maps Data Reader` on `map-wehobby-iaas-dev` next to `Storage Blob Data Contributor`; `G2`, `Gen2`, `northeurope`, `true`; one CORS rule for `https://wehobby.app`.
+
+> **Good to know:** a new role assignment can take a few minutes to apply. Until then, Maps answers `401` or `403`.
+
+### Put the client id on the VM
+
+Get the value from the deployment outputs:
+
+```powershell
+az deployment sub show --name wehobby-bicep-maps --query properties.outputs.mapsClientId.value -o tsv
+```
+
+Connect to the VM with Bastion (19c) and add it to `/opt/wehobby/.env`:
+
+```bash
+echo 'AZURE_MAPS_CLIENT_ID=<value from above>' | sudo tee -a /opt/wehobby/.env
+sudo grep AZURE_MAPS_CLIENT_ID /opt/wehobby/.env
+```
+
+Expected: one line with the id. The API only starts using it in slice 4 (PR 2), so nothing needs restarting now.
+
+---
+
 ## Step 19: Validate
 
 ### 19a. Resources

@@ -73,6 +73,15 @@ module storage './modules/storage.bicep' = {
   }
 }
 
+module maps './modules/maps.bicep' = {
+  name: 'mapsDeployment'
+  scope: resourceGroup
+  params: {
+    location: location
+    tags: tags
+  }
+}
+
 module compute './modules/compute.bicep' = {
   name: 'computeDeployment'
   scope: resourceGroup
@@ -94,6 +103,7 @@ module roles './modules/roles.bicep' = {
   scope: resourceGroup
   params: {
     storageAccountName: storage.outputs.storageAccountName
+    mapsAccountName: maps.outputs.mapsAccountName
     principalId: compute.outputs.principalId
   }
 }
@@ -139,3 +149,4 @@ output publicIpAddress string = compute.outputs.publicIpAddress
 output azureFqdn string = compute.outputs.fqdn
 output customDomains array = dns.outputs.fqdns
 output storageAccountName string = storage.outputs.storageAccountName
+output mapsClientId string = maps.outputs.mapsClientId
