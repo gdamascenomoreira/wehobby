@@ -88,10 +88,4 @@ The same app is deployed in several infrastructure scenarios (see `docs/README.m
 
 ## Build order (MVP slices)
 
-1. Monorepo scaffold, CI, "hello world" running on the scenario 01 VM at `https://wehobby.app` (see `docs/prompts/m1-hello-world-vm.md`), then automated deploys to the VM
-2. Sign up and log in (Entra External ID)
-3. Pick hobbies and set location
-4. Post a photo (upload, processing, moderation)
-5. Community feed with near me and type filters
-6. Likes, comments, follows and notifications
-7. Profile, report, block, delete, data export
+The plan, slice numbers and status live in `docs/plan.md`. Read it before starting a slice, and update its Status column in the same pull request that finishes a slice.
