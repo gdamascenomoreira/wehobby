@@ -71,6 +71,19 @@
     "hobbies": {
       "title": "Your hobbies",
       "save": "Save hobbies"
+    },
+    "area": {
+      "title": "Your area",
+      "none": "Not set",
+      "add": "Add my area",
+      "change": "Change",
+      "remove": "Remove my location",
+      "confirmText": "Remove your area? You will not see the near me filter until you add it again.",
+      "confirmRemove": "Yes, remove it",
+      "cancel": "Cancel",
+      "saved": "Area saved.",
+      "removed": "Your location was removed.",
+      "error": "We couldn't remove your location. Please try again."
     }
   },
   "hobbies": {
@@ -139,5 +152,38 @@
   "form": {
     "saving": "Saving…",
     "error": "Something went wrong. Please try again."
+  },
+  "location": {
+    "consent": "We keep only your approximate area (about 1 km) and show only the town or city name, never a pin on a map. You can remove it at any time in Settings.",
+    "useCurrent": "Use my current location",
+    "locating": "Finding your area…",
+    "or": "or",
+    "search": {
+      "label": "Search for your town or city",
+      "hint": "Type at least {{count}} letters.",
+      "results": "Matching places",
+      "searching": "Searching…",
+      "count_one": "{{count}} place found. Use the arrow keys to choose.",
+      "count_other": "{{count}} places found. Use the arrow keys to choose."
+    },
+    "messages": {
+      "denied": "Location access is off for WeHobby. You can search for your town or city instead.",
+      "unavailable": "We couldn't get your location. You can search for your town or city instead.",
+      "noPlaceHere": "We couldn't find a town near you. Please search for it instead.",
+      "saveError": "We couldn't save your area. Please try again.",
+      "searchError": "Search is not available right now. Please try again in a moment.",
+      "noResults": "No places found. Check the spelling or try a nearby town."
+    }
+  },
+  "locationStep": {
+    "title": "Where do you do your hobby?",
+    "intro": "Add your area to find people near you. This step is optional.",
+    "skip": "Skip for now"
+  },
+  "addArea": {
+    "title": "Add your area to see people near you",
+    "body": "Only your town or city name is shown.",
+    "add": "Add my area",
+    "dismiss": "Not now"
   }
 }

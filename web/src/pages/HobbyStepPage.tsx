@@ -14,7 +14,7 @@ export function HobbyStepPage() {
       <HobbyEditor
         submitLabel={t('hobbyStep.submit')}
         onSaved={() => {
-          void navigate('/', { replace: true });
+          void navigate('/onboarding/location', { replace: true });
         }}
       />
     </main>

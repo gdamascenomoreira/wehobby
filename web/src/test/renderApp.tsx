@@ -15,6 +15,7 @@ export const giovanna: Profile = {
   bio: '',
   language: 'en',
   createdAt: '2026-10-10T10:00:00.000Z',
+  location: null,
 };
 
 /** A small catalog, in the shape of `GET /api/hobbies`. */
@@ -31,9 +32,12 @@ export const giovannaHobbies: MyHobbies = {
   hobbies: [{ hobbyId: 'crochet', typeIds: ['amigurumi'] }],
 };
 
-type Handler = (body: unknown) => Response;
+type Handler = (body: unknown, url: URL) => Response;
 
-/** Routes keyed by "METHOD /api/path". Unknown routes answer 404. */
+/**
+ * Routes keyed by "METHOD /api/path", with or without the query string (the
+ * exact key wins). Unknown routes answer 404.
+ */
 export type ApiRoutes = Record<string, Handler>;
 
 export function json(body: unknown, status = 200): Response {
@@ -43,11 +47,13 @@ export function json(body: unknown, status = 200): Response {
 export function stubApi(routes: ApiRoutes) {
   const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-    const key = `${init?.method ?? 'GET'} ${url}`;
-    const handler = routes[key];
+    const method = init?.method ?? 'GET';
+    const parsed = new URL(url, 'http://localhost');
+    const key = `${method} ${url}`;
+    const handler = routes[key] ?? routes[`${method} ${parsed.pathname}`];
     const body: unknown = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
     return Promise.resolve(
-      handler ? handler(body) : json({ error: 'not_found', message: key }, 404),
+      handler ? handler(body, parsed) : json({ error: 'not_found', message: key }, 404),
     );
   });
   vi.stubGlobal('fetch', fetchMock);

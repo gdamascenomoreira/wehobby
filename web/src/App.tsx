@@ -4,6 +4,7 @@ import { useSession } from './auth/session';
 import { LanguagePicker } from './components/LanguagePicker';
 import { HobbyStepPage } from './pages/HobbyStepPage';
 import { HomePage } from './pages/HomePage';
+import { LocationStepPage } from './pages/LocationStepPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { SettingsPage } from './pages/SettingsPage';
 
@@ -65,7 +66,18 @@ function AppRoutes() {
       />
       <Route
         path="/onboarding/hobbies"
-        element={status === 'needsHobbies' ? <HobbyStepPage /> : <Navigate to="/" replace />}
+        element={
+          status === 'needsHobbies' ? (
+            <HobbyStepPage />
+          ) : (
+            // Saving the hobbies makes the session ready: the optional location step is next.
+            <Navigate to={status === 'ready' ? '/onboarding/location' : '/'} replace />
+          )
+        }
+      />
+      <Route
+        path="/onboarding/location"
+        element={status === 'ready' ? <LocationStepPage /> : <Navigate to="/" replace />}
       />
       <Route
         path="/settings"

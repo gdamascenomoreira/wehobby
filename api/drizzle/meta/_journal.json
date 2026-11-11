@@ -15,6 +15,13 @@
       "when": 1793634189548,
       "tag": "0001_hobbies",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794253540074,
+      "tag": "0002_location",
+      "breakpoints": true
     }
   ]
 }

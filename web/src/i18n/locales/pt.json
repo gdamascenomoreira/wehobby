@@ -71,6 +71,19 @@
     "hobbies": {
       "title": "Os teus hobbies",
       "save": "Guardar hobbies"
+    },
+    "area": {
+      "title": "A tua zona",
+      "none": "Não definida",
+      "add": "Adicionar a minha zona",
+      "change": "Alterar",
+      "remove": "Remover a minha localização",
+      "confirmText": "Remover a tua zona? Não verás o filtro perto de mim até a adicionares de novo.",
+      "confirmRemove": "Sim, remover",
+      "cancel": "Cancelar",
+      "saved": "Zona guardada.",
+      "removed": "A tua localização foi removida.",
+      "error": "Não conseguimos remover a tua localização. Tenta novamente."
     }
   },
   "hobbies": {
@@ -139,5 +152,38 @@
   "form": {
     "saving": "A guardar…",
     "error": "Algo correu mal. Tenta de novo."
+  },
+  "location": {
+    "consent": "Guardamos apenas a tua zona aproximada (cerca de 1 km) e mostramos só o nome da localidade, nunca um ponto num mapa. Podes removê-la a qualquer momento nas Definições.",
+    "useCurrent": "Usar a minha localização atual",
+    "locating": "A procurar a tua zona…",
+    "or": "ou",
+    "search": {
+      "label": "Procura a tua localidade",
+      "hint": "Escreve pelo menos {{count}} letras.",
+      "results": "Localidades encontradas",
+      "searching": "A procurar…",
+      "count_one": "{{count}} localidade encontrada. Usa as setas para escolher.",
+      "count_other": "{{count}} localidades encontradas. Usa as setas para escolher."
+    },
+    "messages": {
+      "denied": "O acesso à localização está desligado para a WeHobby. Podes procurar a tua localidade.",
+      "unavailable": "Não conseguimos obter a tua localização. Podes procurar a tua localidade.",
+      "noPlaceHere": "Não encontrámos uma localidade perto de ti. Procura-a pelo nome.",
+      "saveError": "Não conseguimos guardar a tua zona. Tenta novamente.",
+      "searchError": "A pesquisa não está disponível agora. Tenta daqui a pouco.",
+      "noResults": "Nenhuma localidade encontrada. Verifica o nome ou tenta uma localidade próxima."
+    }
+  },
+  "locationStep": {
+    "title": "Onde praticas o teu hobby?",
+    "intro": "Adiciona a tua zona para encontrares pessoas perto de ti. Este passo é opcional.",
+    "skip": "Saltar por agora"
+  },
+  "addArea": {
+    "title": "Adiciona a tua zona para veres pessoas perto de ti",
+    "body": "Só mostramos o nome da tua localidade.",
+    "add": "Adicionar a minha zona",
+    "dismiss": "Agora não"
   }
 }

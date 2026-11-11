@@ -8,9 +8,12 @@ import type { Database } from './db/client.js';
 import { isDatabaseError } from './db/errors.js';
 import { createReadinessCheck, type ReadinessCheck } from './db/readiness.js';
 import { sendError } from './errors.js';
+import { createGeocoder, type Geocoder } from './geocoder/index.js';
 import { createHobbyRepository } from './hobbies/repository.js';
+import { createLocationRepository } from './location/repository.js';
 import { healthRoute } from './routes/health.js';
 import { hobbiesRoute } from './routes/hobbies.js';
+import { locationRoute } from './routes/location.js';
 import { meRoute } from './routes/me.js';
 import { publicConfigRoute } from './routes/public-config.js';
 import { readyRoute } from './routes/ready.js';
@@ -26,6 +29,8 @@ export interface AppDependencies {
   getSigningKey?: JWTVerifyGetKey;
   /** Readiness check behind /api/ready. Defaults to checking `db`; tests pass a fake. */
   checkReadiness?: ReadinessCheck;
+  /** City search and reverse geocoding. Defaults to the one in `config`; tests pass a spy. */
+  geocoder?: Geocoder;
 }
 
 export async function buildApp(config: Config, deps: AppDependencies): Promise<FastifyInstance> {
@@ -78,6 +83,8 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
 
   const users = createUserRepository(deps.db);
   const hobbies = createHobbyRepository(deps.db);
+  const locations = createLocationRepository(deps.db);
+  const geocoder = deps.geocoder ?? createGeocoder(config);
   const verifyToken = createTokenVerifier(config.auth, deps.getSigningKey);
 
   await app.register(
@@ -90,6 +97,7 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
       await api.register(usernamesRoute, { users, verifyToken });
       await api.register(meRoute, { users, verifyToken });
       await api.register(hobbiesRoute, { hobbies, verifyToken });
+      await api.register(locationRoute, { users, locations, geocoder, verifyToken });
     },
     { prefix: API_PREFIX },
   );
