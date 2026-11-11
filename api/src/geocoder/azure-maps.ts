@@ -16,7 +16,7 @@ const LOCALITY_TYPES = ['PopulatedPlace', 'AdminDivision2'] as const;
 
 const ACCEPT_LANGUAGE: Record<Language, string> = { pt: 'pt-PT', en: 'en-GB' };
 
-/** The subset of `@azure/identity`'s TokenCredential this client needs. */
+/** Anything that gives an Entra ID access token for a scope (the VM managed identity). */
 export interface TokenSource {
   getToken(scope: string): Promise<{ token: string } | null>;
 }

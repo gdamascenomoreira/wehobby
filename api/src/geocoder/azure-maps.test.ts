@@ -165,7 +165,7 @@ describe('AzureMapsGeocoder', () => {
 
   it('fails without calling Maps when there is no token', async () => {
     const { geocoder, fetchMock } = setup(() => jsonResponse({ features: [] }), {
-      getToken: () => Promise.reject(new Error('ManagedIdentityCredential: no IMDS')),
+      getToken: () => Promise.reject(new Error('Managed identity endpoint unreachable')),
     });
     await expect(geocoder.search('Lisboa', 'pt')).rejects.toMatchObject({ reason: 'credential' });
     expect(fetchMock).not.toHaveBeenCalled();
