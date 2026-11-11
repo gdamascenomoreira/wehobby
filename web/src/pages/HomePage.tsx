@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router';
 import { useSession } from '../auth/session';
+import { AddAreaCard } from '../components/AddAreaCard';
 import { ApiStatus } from '../components/ApiStatus';
 import { HobbyIcon } from '../components/HobbyIcon';
 import { useHobbyLabels } from '../components/useHobbyLabels';
@@ -22,7 +23,11 @@ export function HomePage() {
     return (
       <main className="page home">
         <h1 className="home__title">{t('home.welcome', { name: profile.displayName })}</h1>
-        <p className="home__tagline">@{profile.username}</p>
+        <p className="home__tagline">
+          @{profile.username}
+          {profile.location && ` · ${profile.location.label}`}
+        </p>
+        {!profile.location && <AddAreaCard />}
         <section className="my-hobbies" aria-labelledby="my-hobbies-title">
           <h2 id="my-hobbies-title">{t('home.yourHobbies')}</h2>
           <ul className="my-hobbies__list">

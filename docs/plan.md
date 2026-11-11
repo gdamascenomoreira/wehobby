@@ -37,7 +37,7 @@ Six steps are done and seven remain before launch. Each remaining step is one pu
 | 4 | Scenario 01 rebuilt in Bicep, DNS owned by Bicep, portal VM retired (PRs #19 to #21) | | Bicep | ✅ Done |
 | 5 | Slice 2: sign in, profile, username, language, age 16+ (PRs #22 to #24) | 1 | | ✅ Done |
 | 6 | Slice 3: hobbies and hobby types in onboarding and settings | 2 | None | ✅ Done |
-| 7 | Slice 4: location with Azure Maps | 3 | Azure Maps account + Data Reader role for the VM identity | 🟡 In progress |
+| 7 | Slice 4: location with Azure Maps | 3 | Azure Maps account + Data Reader role for the VM identity | ✅ Done |
 | 8 | Slice 5: photo upload pipeline with the worker container | 4 (part) | Blob CORS for wehobby.app; optional lifecycle rule on `incoming/` | ⬜ Not started |
 | 9 | Slice 6: posts, community feeds, home feed, near me | 4, 5 | None | ⬜ Not started |
 | 10 | Slice 7: likes, comments, replies, follows, notification bell | 6 | None | ⬜ Not started |

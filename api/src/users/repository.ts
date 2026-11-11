@@ -32,6 +32,10 @@ export function toProfile(row: UserRow): Profile {
     bio: row.bio,
     language: row.language,
     createdAt: row.createdAt.toISOString(),
+    location:
+      row.locationLabel && row.locationCountryCode
+        ? { label: row.locationLabel, countryCode: row.locationCountryCode }
+        : null,
   };
 }
 

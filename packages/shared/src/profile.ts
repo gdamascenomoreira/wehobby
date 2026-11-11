@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MyLocationSchema } from './location.js';
 
 export const LANGUAGES = ['pt', 'en'] as const;
 export const LanguageSchema = z.enum(LANGUAGES);
@@ -68,6 +69,8 @@ export const ProfileSchema = z.object({
   bio: z.string(),
   language: LanguageSchema,
   createdAt: z.iso.datetime(),
+  /** Approximate area, or null when the user has not shared one. */
+  location: MyLocationSchema.nullable(),
 });
 export type Profile = z.infer<typeof ProfileSchema>;
 

@@ -2,9 +2,12 @@ import type {
   CreateProfile,
   Hobby,
   MyHobby,
+  MyLocation,
+  Place,
   Profile,
   TypeSuggestion,
   UpdateMyHobbies,
+  UpdateMyLocation,
   UpdateProfile,
 } from '@wehobby/shared';
 import {
@@ -24,6 +27,7 @@ import {
   suggestHobbyType,
   updateMyHobbies,
 } from '../api/hobbies';
+import { deleteMyLocation, searchPlaces, updateMyLocation } from '../api/location';
 import { checkUsername, createMyProfile, fetchMyProfile, updateMyProfile } from '../api/profile';
 import type { AuthClient } from './authClient';
 
@@ -48,6 +52,10 @@ export interface Session {
   fetchHobbyCatalog: () => Promise<Hobby[]>;
   saveHobbies: (input: UpdateMyHobbies) => Promise<MyHobby[]>;
   suggestType: (input: TypeSuggestion) => Promise<void>;
+  searchPlaces: (q: string, signal?: AbortSignal) => Promise<Place[]>;
+  /** Saves the user's area and updates `profile.location`. */
+  setLocation: (input: UpdateMyLocation) => Promise<MyLocation>;
+  clearLocation: () => Promise<void>;
 }
 
 const SessionContext = createContext<Session | null>(null);
@@ -164,6 +172,18 @@ export function SessionProvider({ createAuthClient, children }: SessionProviderP
       },
       async suggestType(input) {
         await suggestHobbyType(await requireClient().getAccessToken(), input);
+      },
+      async searchPlaces(q, signal) {
+        return searchPlaces(await requireClient().getAccessToken(), q, signal);
+      },
+      async setLocation(input) {
+        const location = await updateMyLocation(await requireClient().getAccessToken(), input);
+        setProfile((current) => current && { ...current, location });
+        return location;
+      },
+      async clearLocation() {
+        await deleteMyLocation(await requireClient().getAccessToken());
+        setProfile((current) => current && { ...current, location: null });
       },
     };
   }, [client, status, profile, hobbies, applyProfile]);

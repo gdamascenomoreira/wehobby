@@ -72,6 +72,8 @@ describe('hobbies', () => {
       await user.click(within(types).getByRole('checkbox', { name: 'Amigurumi' }));
       await user.click(screen.getByRole('button', { name: 'Continue' }));
 
+      // The optional location step comes next.
+      await user.click(await screen.findByRole('button', { name: 'Skip for now' }));
       expect(await screen.findByRole('heading', { name: 'Hello, Giovanna!' })).toBeInTheDocument();
       expect(saved).toEqual([{ hobbies: [{ hobbyId: 'crochet', typeIds: ['amigurumi'] }] }]);
       const mine = screen.getByRole('region', { name: 'Your hobbies' });

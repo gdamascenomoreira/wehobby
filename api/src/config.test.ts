@@ -39,4 +39,32 @@ describe('loadConfig', () => {
   ])('rejects an invalid %s', (key, value) => {
     expect(() => loadConfig({ ...TEST_ENV, [key]: value })).toThrow();
   });
+
+  describe('geocoder', () => {
+    const MAPS_CLIENT_ID = '00000000-0000-4000-8000-000000000004';
+
+    it('uses the fake geocoder outside production', () => {
+      expect(loadConfig(TEST_ENV).geocoder).toEqual({ kind: 'fake' });
+      expect(loadConfig({ ...TEST_ENV, NODE_ENV: 'development' }).geocoder).toEqual({
+        kind: 'fake',
+      });
+    });
+
+    it('uses Azure Maps in production and then needs the client id', () => {
+      const production = { ...TEST_ENV, NODE_ENV: 'production' };
+      expect(() => loadConfig(production)).toThrow(/AZURE_MAPS_CLIENT_ID/);
+      expect(loadConfig({ ...production, AZURE_MAPS_CLIENT_ID: MAPS_CLIENT_ID }).geocoder).toEqual({
+        kind: 'azure',
+        mapsClientId: MAPS_CLIENT_ID,
+      });
+    });
+
+    it('lets GEOCODER override the default', () => {
+      expect(
+        loadConfig({ ...TEST_ENV, NODE_ENV: 'production', GEOCODER: 'fake' }).geocoder,
+      ).toEqual({ kind: 'fake' });
+      expect(() => loadConfig({ ...TEST_ENV, GEOCODER: 'azure' })).toThrow();
+      expect(() => loadConfig({ ...TEST_ENV, GEOCODER: 'google' })).toThrow();
+    });
+  });
 });

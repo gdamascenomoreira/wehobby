@@ -55,3 +55,23 @@ export {
   type NotReadyReason,
   type ReadyResponse,
 } from './ready.js';
+export {
+  COORDINATE_DECIMALS,
+  CountryCodeSchema,
+  LatitudeSchema,
+  LongitudeSchema,
+  MAX_PLACE_RESULTS,
+  MyLocationSchema,
+  PLACE_QUERY_MAX_LENGTH,
+  PLACE_QUERY_MIN_LENGTH,
+  PlaceSchema,
+  PlaceSearchQuerySchema,
+  PlaceSearchResponseSchema,
+  roundCoordinate,
+  UpdateMyLocationSchema,
+  type MyLocation,
+  type Place,
+  type PlaceSearchQuery,
+  type PlaceSearchResponse,
+  type UpdateMyLocation,
+} from './location.js';

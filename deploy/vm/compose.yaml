@@ -55,6 +55,9 @@ services:
       AUTH_TENANT_SUBDOMAIN: ${AUTH_TENANT_SUBDOMAIN}
       AUTH_API_CLIENT_ID: ${AUTH_API_CLIENT_ID:?set AUTH_API_CLIENT_ID in .env}
       AUTH_WEB_CLIENT_ID: ${AUTH_WEB_CLIENT_ID:?set AUTH_WEB_CLIENT_ID in .env}
+      # City search with Azure Maps through the VM managed identity (no key).
+      GEOCODER: azure
+      AZURE_MAPS_CLIENT_ID: ${AZURE_MAPS_CLIENT_ID:?set AZURE_MAPS_CLIENT_ID in .env}
     # Healthy only when the database answers and every migration is applied,
     # so Caddy starts only when the API can really serve requests.
     healthcheck:

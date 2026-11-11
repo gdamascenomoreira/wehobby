@@ -8,6 +8,7 @@ import {
 import { useState, type SubmitEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/session';
+import { AreaSettings } from '../components/AreaSettings';
 import { Field } from '../components/Field';
 import { HobbyEditor } from '../components/HobbyEditor';
 import { LanguageSelect } from '../components/LanguageSelect';
@@ -107,6 +108,8 @@ export function SettingsPage({ profile }: { profile: Profile }) {
         <h2 id="settings-hobbies">{t('settings.hobbies.title')}</h2>
         <HobbyEditor submitLabel={t('settings.hobbies.save')} confirmSave />
       </section>
+
+      <AreaSettings location={profile.location} />
 
       <button type="button" className="button" onClick={() => void signOut()}>
         {t('settings.signOut')}
