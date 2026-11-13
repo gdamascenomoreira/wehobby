@@ -5,6 +5,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -184,3 +185,73 @@ export const placeSearches = pgTable(
     check('place_searches_language_check', sql`${table.language} in ('pt', 'en')`),
   ],
 );
+
+export const UPLOAD_STATUSES = ['pending', 'processing', 'ready', 'failed'] as const;
+
+/**
+ * One photo sent by a user. The original goes to `incoming/<id>` in the photos
+ * container; the worker writes the cleaned versions to `processed/<id>/`.
+ * Width and height are those of the full size version, set when ready.
+ */
+export const uploads = pgTable(
+  'uploads',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    status: text('status', { enum: UPLOAD_STATUSES }).notNull().default('pending'),
+    contentType: text('content_type').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    width: integer('width'),
+    height: integer('height'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    readyAt: timestamp('ready_at', { withTimezone: true }),
+  },
+  (table) => [
+    check(
+      'uploads_status_check',
+      sql`${table.status} in ('pending', 'processing', 'ready', 'failed')`,
+    ),
+    check('uploads_size_check', sql`${table.sizeBytes} > 0`),
+    check(
+      'uploads_ready_check',
+      sql`(${table.status} = 'ready') = (${table.width} is not null and ${table.height} is not null and ${table.readyAt} is not null)`,
+    ),
+    index('uploads_user_id_idx').on(table.userId),
+  ],
+);
+
+export type UploadRow = typeof uploads.$inferSelect;
+
+export const JOB_STATUSES = ['queued', 'running', 'done', 'failed'] as const;
+
+/**
+ * Background work for the worker container, used as a queue: workers claim
+ * the oldest due job with `FOR UPDATE SKIP LOCKED`, so two workers never run
+ * the same job. Failed attempts are retried later through `run_after`.
+ */
+export const jobs = pgTable(
+  'jobs',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    kind: text('kind').notNull(),
+    payload: jsonb('payload').notNull(),
+    status: text('status', { enum: JOB_STATUSES }).notNull().default('queued'),
+    attempts: integer('attempts').notNull().default(0),
+    runAfter: timestamp('run_after', { withTimezone: true }).notNull().defaultNow(),
+    lockedAt: timestamp('locked_at', { withTimezone: true }),
+    lastError: text('last_error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('jobs_status_check', sql`${table.status} in ('queued', 'running', 'done', 'failed')`),
+    index('jobs_due_idx')
+      .on(table.runAfter)
+      .where(sql`${table.status} = 'queued'`),
+  ],
+);
+
+export type JobRow = typeof jobs.$inferSelect;
