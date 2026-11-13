@@ -1,6 +1,6 @@
 import type { Config } from '../config.js';
 import { createAzureMapsGeocoder } from './azure-maps.js';
-import { createManagedIdentityCredential } from './credential.js';
+import { createManagedIdentityCredential } from '../azure/credential.js';
 import { createFakeGeocoder } from './fake.js';
 import type { Geocoder } from './geocoder.js';
 

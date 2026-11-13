@@ -1,5 +1,6 @@
 import type { Language } from '@wehobby/shared';
 import { z } from 'zod';
+import type { TokenSource } from '../azure/credential.js';
 import { GeocoderError, type GeocodedPlace, type Geocoder } from './geocoder.js';
 
 /** Search v2 geocoding, GA. https://learn.microsoft.com/rest/api/maps/search */
@@ -16,10 +17,7 @@ const LOCALITY_TYPES = ['PopulatedPlace', 'AdminDivision2'] as const;
 
 const ACCEPT_LANGUAGE: Record<Language, string> = { pt: 'pt-PT', en: 'en-GB' };
 
-/** Anything that gives an Entra ID access token for a scope (the VM managed identity). */
-export interface TokenSource {
-  getToken(scope: string): Promise<{ token: string } | null>;
-}
+export type { TokenSource };
 
 export interface AzureMapsGeocoderOptions {
   clientId: string;

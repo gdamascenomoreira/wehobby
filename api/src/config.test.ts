@@ -51,7 +51,11 @@ describe('loadConfig', () => {
     });
 
     it('uses Azure Maps in production and then needs the client id', () => {
-      const production = { ...TEST_ENV, NODE_ENV: 'production' };
+      const production = {
+        ...TEST_ENV,
+        NODE_ENV: 'production',
+        STORAGE_ACCOUNT_NAME: 'stwehobbytest',
+      };
       expect(() => loadConfig(production)).toThrow(/AZURE_MAPS_CLIENT_ID/);
       expect(loadConfig({ ...production, AZURE_MAPS_CLIENT_ID: MAPS_CLIENT_ID }).geocoder).toEqual({
         kind: 'azure',
@@ -61,10 +65,64 @@ describe('loadConfig', () => {
 
     it('lets GEOCODER override the default', () => {
       expect(
-        loadConfig({ ...TEST_ENV, NODE_ENV: 'production', GEOCODER: 'fake' }).geocoder,
+        loadConfig({
+          ...TEST_ENV,
+          NODE_ENV: 'production',
+          GEOCODER: 'fake',
+          STORAGE_ACCOUNT_NAME: 'stwehobbytest',
+        }).geocoder,
       ).toEqual({ kind: 'fake' });
       expect(() => loadConfig({ ...TEST_ENV, GEOCODER: 'azure' })).toThrow();
       expect(() => loadConfig({ ...TEST_ENV, GEOCODER: 'google' })).toThrow();
+    });
+  });
+
+  describe('storage', () => {
+    const MAPS_CLIENT_ID = '00000000-0000-4000-8000-000000000004';
+    const production = {
+      ...TEST_ENV,
+      NODE_ENV: 'production',
+      AZURE_MAPS_CLIENT_ID: MAPS_CLIENT_ID,
+    };
+
+    it('uses a local folder outside production', () => {
+      expect(loadConfig(TEST_ENV).storage).toEqual({ kind: 'fake', directory: '.storage' });
+      expect(loadConfig({ ...TEST_ENV, FAKE_STORAGE_DIR: '/tmp/photos' }).storage).toEqual({
+        kind: 'fake',
+        directory: '/tmp/photos',
+      });
+    });
+
+    it('uses Blob Storage in production and then needs the account name', () => {
+      expect(() => loadConfig(production)).toThrow(/STORAGE_ACCOUNT_NAME/);
+      expect(loadConfig({ ...production, STORAGE_ACCOUNT_NAME: 'stwehobbydev' }).storage).toEqual({
+        kind: 'azure',
+        accountName: 'stwehobbydev',
+        container: 'photos',
+      });
+    });
+
+    it('never allows the fake storage in production', () => {
+      expect(() => loadConfig({ ...production, STORAGE: 'fake' })).toThrow(/not allowed/);
+    });
+
+    it('rejects invalid account and container names', () => {
+      expect(() =>
+        loadConfig({ ...production, STORAGE_ACCOUNT_NAME: 'st-wehobby.blob.core.windows.net' }),
+      ).toThrow();
+      expect(() =>
+        loadConfig({
+          ...production,
+          STORAGE_ACCOUNT_NAME: 'stwehobbydev',
+          PHOTOS_CONTAINER: '../x',
+        }),
+      ).toThrow();
+    });
+
+    it('keeps storage settings out of the top level config', () => {
+      const config = loadConfig(TEST_ENV);
+      expect(config).not.toHaveProperty('STORAGE');
+      expect(config).not.toHaveProperty('FAKE_STORAGE_DIR');
     });
   });
 });

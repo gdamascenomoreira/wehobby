@@ -11,13 +11,17 @@ import { sendError } from './errors.js';
 import { createGeocoder, type Geocoder } from './geocoder/index.js';
 import { createHobbyRepository } from './hobbies/repository.js';
 import { createLocationRepository } from './location/repository.js';
+import { devStorageRoute } from './routes/dev-storage.js';
 import { healthRoute } from './routes/health.js';
 import { hobbiesRoute } from './routes/hobbies.js';
 import { locationRoute } from './routes/location.js';
 import { meRoute } from './routes/me.js';
 import { publicConfigRoute } from './routes/public-config.js';
 import { readyRoute } from './routes/ready.js';
+import { uploadsRoute } from './routes/uploads.js';
 import { usernamesRoute } from './routes/usernames.js';
+import { createPhotoStorage } from './storage/index.js';
+import { createUploadRepository } from './uploads/repository.js';
 import { createUserRepository } from './users/repository.js';
 
 /** Every route lives under this prefix, so no proxy needs to rewrite paths. */
@@ -31,6 +35,8 @@ export interface AppDependencies {
   checkReadiness?: ReadinessCheck;
   /** City search and reverse geocoding. Defaults to the one in `config`; tests pass a spy. */
   geocoder?: Geocoder;
+  /** Photo storage. Defaults to the one in `config`; tests pass a fake in a temporary folder. */
+  photoStorage?: ReturnType<typeof createPhotoStorage>;
 }
 
 export async function buildApp(config: Config, deps: AppDependencies): Promise<FastifyInstance> {
@@ -85,6 +91,8 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
   const hobbies = createHobbyRepository(deps.db);
   const locations = createLocationRepository(deps.db);
   const geocoder = deps.geocoder ?? createGeocoder(config);
+  const uploads = createUploadRepository(deps.db);
+  const photoStorage = deps.photoStorage ?? createPhotoStorage(config.storage);
   const verifyToken = createTokenVerifier(config.auth, deps.getSigningKey);
 
   await app.register(
@@ -98,6 +106,10 @@ export async function buildApp(config: Config, deps: AppDependencies): Promise<F
       await api.register(meRoute, { users, verifyToken });
       await api.register(hobbiesRoute, { hobbies, verifyToken });
       await api.register(locationRoute, { users, locations, geocoder, verifyToken });
+      await api.register(uploadsRoute, { uploads, storage: photoStorage.storage, verifyToken });
+      if (photoStorage.kind === 'fake') {
+        await api.register(devStorageRoute, { storage: photoStorage.storage });
+      }
     },
     { prefix: API_PREFIX },
   );

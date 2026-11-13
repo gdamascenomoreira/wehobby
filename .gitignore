@@ -176,3 +176,6 @@ tfplan
 
 # Local runs of deploy/vm/compose.yaml
 deploy/vm/.data/
+
+# Local photo storage of the API (STORAGE=fake)
+.storage/

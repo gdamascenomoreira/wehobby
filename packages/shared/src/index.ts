@@ -75,3 +75,21 @@ export {
   type PlaceSearchResponse,
   type UpdateMyLocation,
 } from './location.js';
+export {
+  CreateUploadResponseSchema,
+  CreateUploadSchema,
+  MAX_UPLOAD_BYTES,
+  PhotoSchema,
+  UPLOAD_CONTENT_TYPES,
+  UPLOAD_STATUSES,
+  UploadContentTypeSchema,
+  UploadParamsSchema,
+  UploadSchema,
+  UploadStatusSchema,
+  type CreateUpload,
+  type CreateUploadResponse,
+  type Photo,
+  type Upload,
+  type UploadContentType,
+  type UploadStatus,
+} from './uploads.js';
