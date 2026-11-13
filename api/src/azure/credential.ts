@@ -1,11 +1,15 @@
 import { z } from 'zod';
-import type { TokenSource } from './azure-maps.js';
 
 /**
  * Azure Instance Metadata Service: answers only from inside the VM, with a
  * token for the VM's system assigned managed identity.
  * https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/how-to-use-vm-token
  */
+/** Anything that gives an Entra ID access token for a scope (the VM managed identity). */
+export interface TokenSource {
+  getToken(scope: string): Promise<{ token: string } | null>;
+}
+
 export const IMDS_TOKEN_URL = 'http://169.254.169.254/metadata/identity/oauth2/token';
 const IMDS_API_VERSION = '2018-02-01';
 const IMDS_TIMEOUT_MS = 2000;
@@ -26,7 +30,7 @@ export interface ManagedIdentityOptions {
 /**
  * Gets Entra ID tokens for the VM managed identity from IMDS and caches each
  * one until shortly before it expires. Written by hand instead of using
- * `@azure/identity`, which this is the only use of; it works on any Azure VM
+ * `@azure/identity`, which would only be used for this; it works on any Azure VM
  * and, with a different URL, would be the place to add other hosts.
  */
 export function createManagedIdentityCredential(options: ManagedIdentityOptions = {}): TokenSource {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AZURE_MAPS_SCOPE } from './azure-maps.js';
+import { AZURE_MAPS_SCOPE } from '../geocoder/azure-maps.js';
 import { createManagedIdentityCredential, IMDS_TOKEN_URL } from './credential.js';
 
 const NOW = Date.UTC(2026, 10, 11, 12, 0, 0);
